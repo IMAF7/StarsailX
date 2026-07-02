@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+dist/
+release/
+.venv-build/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+build.log
+build_direct.log
+memory_stress_log.csv
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+
+# Local data (never commit)
+accounts.txt
