@@ -71,33 +71,33 @@ end;
 
 procedure InitializeWizard;
 begin
-  OptPage := CreateCustomPage(wpSelectDir, '安装选项', '选择快捷方式方式');
+  OptPage := CreateCustomPage(wpSelectDir, '安装选项', '选择快捷方式');
 
   CardDesktop := TNewRadioButton.Create(OptPage);
   CardDesktop.Parent := OptPage.Surface;
   CardDesktop.Left := ScaleX(8);
   CardDesktop.Top := ScaleY(8);
-  CardDesktop.Width := ScaleX(250);
-  CardDesktop.Height := ScaleY(88);
-  CardDesktop.Caption := '桌面 + 开始菜单' + #13#10 + '在开始菜单和桌面都创建快捷方式';
+  CardDesktop.Width := OptPage.SurfaceWidth - ScaleX(16);
+  CardDesktop.Height := ScaleY(56);
+  CardDesktop.Caption := '桌面 + 开始菜单' + #13#10 + '在开始菜单和桌面创建快捷方式';
   CardDesktop.Checked := True;
   CardDesktop.Font.Size := 10;
 
   CardMenuOnly := TNewRadioButton.Create(OptPage);
   CardMenuOnly.Parent := OptPage.Surface;
   CardMenuOnly.Left := ScaleX(8);
-  CardMenuOnly.Top := ScaleY(108);
-  CardMenuOnly.Width := ScaleX(250);
-  CardMenuOnly.Height := ScaleY(88);
+  CardMenuOnly.Top := ScaleY(76);
+  CardMenuOnly.Width := OptPage.SurfaceWidth - ScaleX(16);
+  CardMenuOnly.Height := ScaleY(56);
   CardMenuOnly.Caption := '仅开始菜单' + #13#10 + '只在开始菜单创建快捷方式';
   CardMenuOnly.Font.Size := 10;
 
   CardLaunch := TNewCheckBox.Create(OptPage);
   CardLaunch.Parent := OptPage.Surface;
   CardLaunch.Left := ScaleX(8);
-  CardLaunch.Top := ScaleY(212);
-  CardLaunch.Width := ScaleX(250);
-  CardLaunch.Height := ScaleY(48);
+  CardLaunch.Top := ScaleY(152);
+  CardLaunch.Width := OptPage.SurfaceWidth - ScaleX(16);
+  CardLaunch.Height := ScaleY(32);
   CardLaunch.Caption := '安装完成后立即启动';
   CardLaunch.Checked := True;
   CardLaunch.Font.Size := 10;
