@@ -28,6 +28,18 @@ cd c:\Users\admin\Desktop\StarsailX
 | 便携版 | `release\StarsailX_纯净版\` |
 | 安装包 | `release\StarsailX_Setup_2.2.0.exe` |
 | 构建日志 | `build.log` |
+| 下载页 | `download\index.html` |
+
+## 发布到 GitHub Releases
+
+```powershell
+.\build.ps1
+.\publish_release.ps1
+```
+
+- 仓库：https://github.com/IMAF7/StarsailX
+- 最新安装包：https://github.com/IMAF7/StarsailX/releases/latest/download/StarsailX_Setup_2.2.0.exe
+- 下载页（GitHub Pages）：https://imaf7.github.io/StarsailX/download/
 
 ## 必需资源（仓库内）
 
