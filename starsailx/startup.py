@@ -9,7 +9,7 @@ import sys
 def prepare_runtime() -> str:
     """WebView2-only：返回 'webview2'，不做 QtWebEngine 回退。"""
     try:
-        from teamsx.bootstrap.frozen_webview2 import patch_frozen_qtwebview2_paths
+        from starsailx.bootstrap.frozen_webview2 import patch_frozen_qtwebview2_paths
 
         patch_frozen_qtwebview2_paths()
     except Exception:
@@ -26,7 +26,7 @@ def prepare_runtime() -> str:
 
     print("[StarsailX] Starsail 页面引擎: WebView2（qtwebview2）")
     try:
-        from teamsx.engine.webview2 import apply_webview2_runtime_env, use_webview2
+        from starsailx.engine.webview2 import apply_webview2_runtime_env, use_webview2
 
         apply_webview2_runtime_env()
         if not use_webview2():
@@ -34,13 +34,13 @@ def prepare_runtime() -> str:
     except ImportError as e:
         raise RuntimeError(f"缺少依赖: {e}. 请安装 qtwebview2 / pythonnet。")
 
-    from teamsx.bootstrap.ssl import bootstrap_ssl_certs
+    from starsailx.bootstrap.ssl import bootstrap_ssl_certs
 
     bootstrap_ssl_certs()
 
     if sys.platform == "win32":
         try:
-            from teamsx.notify.win_toast import ensure_app_user_model_id, ensure_toast_shortcut
+            from starsailx.notify.win_toast import ensure_app_user_model_id, ensure_toast_shortcut
 
             ensure_app_user_model_id()
             exe = sys.executable if getattr(sys, "frozen", False) else (

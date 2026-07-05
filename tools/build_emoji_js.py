@@ -4,7 +4,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-site_config = ROOT / "teamsx" / "site_config.py"
+site_config = ROOT / "starsailx" / "site_config.py"
 
 EMOJIS = [
     "\U0001F600", "\U0001F603", "\U0001F604", "\U0001F601", "\U0001F606", "\U0001F605", "\U0001F923", "\U0001F602",

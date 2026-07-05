@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "StarsailX.py"
-SITE = ROOT / "teamsx" / "site_config.py"
+SITE = ROOT / "starsailx" / "site_config.py"
 
 
 def patch_site_config() -> None:

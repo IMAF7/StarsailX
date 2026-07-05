@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""One-shot split TeamsX.py monolith into teamsx package."""
+"""One-shot split TeamsX.py monolith into starsailx package."""
 from __future__ import annotations
 
 import os
@@ -7,11 +7,11 @@ import textwrap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "TeamsX.py")
-OUT_APP = os.path.join(ROOT, "teamsx", "application.py")
-OUT_MAIN = os.path.join(ROOT, "teamsx", "__main__.py")
-OUT_STARTUP = os.path.join(ROOT, "teamsx", "startup.py")
-OUT_BOOT = os.path.join(ROOT, "teamsx", "bootstrap", "qtwebengine_media.py")
-OUT_BOOT_INIT = os.path.join(ROOT, "teamsx", "bootstrap", "__init__.py")
+OUT_APP = os.path.join(ROOT, "starsailx", "application.py")
+OUT_MAIN = os.path.join(ROOT, "starsailx", "__main__.py")
+OUT_STARTUP = os.path.join(ROOT, "starsailx", "startup.py")
+OUT_BOOT = os.path.join(ROOT, "starsailx", "bootstrap", "qtwebengine_media.py")
+OUT_BOOT_INIT = os.path.join(ROOT, "starsailx", "bootstrap", "__init__.py")
 OUT_LAUNCHER = os.path.join(ROOT, "TeamsX.py")
 
 with open(SRC, "r", encoding="utf-8") as f:
@@ -35,7 +35,7 @@ import shutil
 import sys
 from typing import List, Optional, Set, Tuple
 
-from teamsx.config import DATA_ROOT
+from starsailx.config import DATA_ROOT
 
 ''' + boot_body.replace("_TEAMS_DATA_ROOT_EARLY", "DATA_ROOT")
 
@@ -54,7 +54,7 @@ from __future__ import annotations
 
 import sys
 
-from teamsx.config import PREFER_WEBVIEW2
+from starsailx.config import PREFER_WEBVIEW2
 
 
 def prepare_runtime() -> str:
@@ -77,19 +77,19 @@ def prepare_runtime() -> str:
         except ImportError:
             pass
     else:
-        from teamsx.bootstrap.qtwebengine_media import bootstrap_webengine_media
+        from starsailx.bootstrap.qtwebengine_media import bootstrap_webengine_media
 
         bootstrap_webengine_media()
 
     if PREFER_WEBVIEW2 and not (has_engine and use_wv2()):
-        from teamsx.bootstrap.qtwebengine_media import bootstrap_webengine_media
+        from starsailx.bootstrap.qtwebengine_media import bootstrap_webengine_media
 
         bootstrap_webengine_media()
         engine = "qtwebengine"
     elif not PREFER_WEBVIEW2:
         engine = "qtwebengine"
 
-    from teamsx.bootstrap.ssl import bootstrap_ssl_certs
+    from starsailx.bootstrap.ssl import bootstrap_ssl_certs
 
     bootstrap_ssl_certs()
 
@@ -104,7 +104,7 @@ def prepare_runtime() -> str:
         print(f"[TeamsX] 当前 Teams 引擎: {engine}")
 
   if not (PREFER_WEBVIEW2 and has_engine and use_wv2()):
-        from teamsx.bootstrap.qtwebengine_media import bootstrap_webengine_media_pyqt_bins
+        from starsailx.bootstrap.qtwebengine_media import bootstrap_webengine_media_pyqt_bins
 
         bootstrap_webengine_media_pyqt_bins()
 
@@ -189,7 +189,7 @@ from PyQt6.QtWebEngineCore import (
 )
 from PyQt6.QtWebChannel import QWebChannel
 
-from teamsx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY
+from starsailx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY
 
 try:
     from teams_engine import (
@@ -228,7 +228,7 @@ try:
 except ImportError:
     HAS_CHARDET = False
 
-from teamsx.config import PREFER_WEBVIEW2 as _TEAMSX_PREFER_WEBVIEW2
+from starsailx.config import PREFER_WEBVIEW2 as _TEAMSX_PREFER_WEBVIEW2
 
 '''
 
@@ -240,7 +240,7 @@ app_body = app_body.replace(
 
 # Add import for edge UA from bootstrap in application if used
 if "_teams_edge_user_agent" in app_body:
-    app_header += "from teamsx.bootstrap.qtwebengine_media import _teams_edge_user_agent\n\n"
+    app_header += "from starsailx.bootstrap.qtwebengine_media import _teams_edge_user_agent\n\n"
 
 app_module = app_header + app_body
 
@@ -258,7 +258,7 @@ def run_app() -> None:
 '''
 
 main_module = '''# -*- coding: utf-8 -*-
-"""python -m teamsx"""
+"""python -m starsailx"""
 from __future__ import annotations
 
 import sys
@@ -268,8 +268,8 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 
 def main() -> None:
     try:
-        from teamsx.startup import prepare_runtime
-        from teamsx.application import run_app
+        from starsailx.startup import prepare_runtime
+        from starsailx.application import run_app
 
         prepare_runtime()
         run_app()
@@ -327,11 +327,11 @@ def urllib_ssl_context() -> ssl.SSLContext:
 '''
 
 boot_init = '''# -*- coding: utf-8 -*-
-from teamsx.bootstrap.qtwebengine_media import (
+from starsailx.bootstrap.qtwebengine_media import (
     bootstrap_webengine_media,
     bootstrap_webengine_media_pyqt_bins,
 )
-from teamsx.bootstrap.ssl import bootstrap_ssl_certs, urllib_ssl_context
+from starsailx.bootstrap.ssl import bootstrap_ssl_certs, urllib_ssl_context
 
 __all__ = [
     "bootstrap_webengine_media",
@@ -343,21 +343,21 @@ __all__ = [
 
 launcher = '''#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TeamsX 启动入口（实现位于 teamsx 包）。"""
-from teamsx.__main__ import main
+"""TeamsX 启动入口（实现位于 starsailx 包）。"""
+from starsailx.__main__ import main
 
 if __name__ == "__main__":
     main()
 '''
 
-os.makedirs(os.path.join(ROOT, "teamsx", "bootstrap"), exist_ok=True)
+os.makedirs(os.path.join(ROOT, "starsailx", "bootstrap"), exist_ok=True)
 os.makedirs(os.path.join(ROOT, "tools"), exist_ok=True)
 
 with open(OUT_BOOT, "w", encoding="utf-8", newline="\n") as f:
     f.write(boot_module)
 with open(OUT_BOOT_INIT, "w", encoding="utf-8", newline="\n") as f:
     f.write(boot_init)
-with open(os.path.join(ROOT, "teamsx", "bootstrap", "ssl.py"), "w", encoding="utf-8", newline="\n") as f:
+with open(os.path.join(ROOT, "starsailx", "bootstrap", "ssl.py"), "w", encoding="utf-8", newline="\n") as f:
     f.write(ssl_module)
 with open(OUT_STARTUP, "w", encoding="utf-8", newline="\n") as f:
     f.write(startup_module)

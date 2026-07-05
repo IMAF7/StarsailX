@@ -35,9 +35,9 @@ def main() -> None:
                 '- Windows 使用 Edge WebView2 显示 Starsail（qtwebview2）',
             ),
             (
-                'from teamsx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY',
-                'from teamsx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY\n'
-                'from teamsx.site_config import (\n'
+                'from starsailx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY',
+                'from starsailx.config import DATA_ROOT as _TEAMS_DATA_ROOT_EARLY\n'
+                'from starsailx.site_config import (\n'
                 '    STARSAIL_APP_URL,\n'
                 '    STARSAIL_SHELL_VERIFY_JS,\n'
                 '    STARSAIL_LOGIN_JS_TEMPLATE,\n'
@@ -152,7 +152,7 @@ def main() -> None:
     print("patched StarsailX.py shell/login/notify")
 
     patch_file(
-        ROOT / "teamsx" / "config.py",
+        ROOT / "starsailx" / "config.py",
         [
             ('_PREFERRED_DATA_ROOT = r"D:\\TeamsX"', '_PREFERRED_DATA_ROOT = r"D:\\StarsailX"'),
             ('TEAMSX_DATA_ROOT', 'STARSAILX_DATA_ROOT'),
@@ -162,10 +162,10 @@ def main() -> None:
     )
 
     patch_file(
-        ROOT / "teamsx" / "app.py",
+        ROOT / "starsailx" / "app.py",
         [
             ('from TeamsX import MainWindow', 'from StarsailX import MainWindow'),
-            ('find_other_teamsx_pids', 'find_other_starsailx_pids'),
+            ('find_other_starsailx_pids', 'find_other_starsailx_pids'),
             ('start_single_instance_listener', 'start_single_instance_listener'),
             ('残留 TeamsX 进程', '残留 StarsailX 进程'),
             ('app._teamsx_single_instance_server', 'app._starsailx_single_instance_server'),
@@ -173,22 +173,22 @@ def main() -> None:
     )
 
     patch_file(
-        ROOT / "teamsx" / "single_instance.py",
+        ROOT / "starsailx" / "single_instance.py",
         [
             ('SERVER_NAME = "TeamsX-SingleInstance-v1"', 'SERVER_NAME = "StarsailX-SingleInstance-v1"'),
             ('_TEAMSX_CMD_MARKERS', '_STARSAILX_CMD_MARKERS'),
-            ('("teamsx.py", "teamsx\\\\__main__", "teamsx/__main__", "-m teamsx")',
-             '("starsailx.py", "starsailx\\\\__main__", "starsailx/__main__", "-m teamsx", "starsailx.py")'),
-            ('def _command_line_looks_like_teamsx', 'def _command_line_looks_like_starsailx'),
-            ('def find_other_teamsx_pids', 'def find_other_starsailx_pids'),
-            ('_command_line_looks_like_teamsx', '_command_line_looks_like_starsailx'),
+            ('("starsailx.py", "teamsx\\\\__main__", "teamsx/__main__", "-m starsailx")',
+             '("starsailx.py", "starsailx\\\\__main__", "starsailx/__main__", "-m starsailx", "starsailx.py")'),
+            ('def _command_line_looks_like_starsailx', 'def _command_line_looks_like_starsailx'),
+            ('def find_other_starsailx_pids', 'def find_other_starsailx_pids'),
+            ('_command_line_looks_like_starsailx', '_command_line_looks_like_starsailx'),
             ('其他 TeamsX 主进程', '其他 StarsailX 主进程'),
             ('残留 TeamsX 空壳', '残留 StarsailX 空壳'),
         ],
     )
 
     patch_file(
-        ROOT / "teamsx" / "startup.py",
+        ROOT / "starsailx" / "startup.py",
         [
             ('[TeamsX]', '[StarsailX]'),
             ('Teams 页面引擎', 'Starsail 页面引擎'),
@@ -197,12 +197,12 @@ def main() -> None:
     )
 
     patch_file(
-        ROOT / "teamsx" / "ui" / "close_action_dialog.py",
+        ROOT / "starsailx" / "ui" / "close_action_dialog.py",
         [('关闭 TeamsX？', '关闭 StarsailX？')],
     )
 
     patch_file(
-        ROOT / "teamsx" / "notify" / "win_toast.py",
+        ROOT / "starsailx" / "notify" / "win_toast.py",
         [
             ('APP_USER_MODEL_ID = "TeamsX.TeamsX.CallNotify"', 'APP_USER_MODEL_ID = "StarsailX.StarsailX.Notify"'),
             ('teamsx_call_dismiss', 'starsailx_call_dismiss'),
@@ -218,7 +218,7 @@ def main() -> None:
         content = path.read_text(encoding="utf-8")
         content = (
             content.replace("TeamsX", "StarsailX")
-            .replace("teamsx", "teamsx")
+            .replace("starsailx", "starsailx")
             .replace("TEAMSX_", "STARSAILX_")
         )
         if name == "build.ps1":

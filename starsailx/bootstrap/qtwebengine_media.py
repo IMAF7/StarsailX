@@ -12,7 +12,7 @@ import shutil
 import sys
 from typing import List, Optional, Set, Tuple
 
-from teamsx.config import DATA_ROOT
+from starsailx.config import DATA_ROOT
 
 _WEBENGINE_MEDIA_READY = False
 _QT_WEBENGINE_CHROMIUM_VERSION: str = ""

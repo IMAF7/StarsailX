@@ -11,12 +11,19 @@ from PyQt6.QtCore import QByteArray
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 
 SERVER_NAME = "StarsailX-SingleInstance-v1"
-_STARSAILX_CMD_MARKERS = ("starsailx.py", "starsailx\\__main__", "starsailx/__main__", "-m teamsx", "starsailx.py")
+_STARSAILX_CMD_MARKERS = (
+    "starsailx.py",
+    "starsailx\\__main__",
+    "starsailx/__main__",
+    "-m starsailx",
+    "-m teamsx",
+    "starsailx.py",
+)
 
 
 def _command_line_looks_like_starsailx(command_line: str) -> bool:
     line = (command_line or "").lower().replace("/", "\\")
-    return any(marker.replace("/", "\\") in line for marker in _TEAMSX_CMD_MARKERS)
+    return any(marker.replace("/", "\\") in line for marker in _STARSAILX_CMD_MARKERS)
 
 
 def find_other_starsailx_pids() -> List[int]:
@@ -70,7 +77,7 @@ def find_other_starsailx_pids() -> List[int]:
         if (
             cur_pid > 0
             and cur_pid != me
-            and _command_line_looks_like_teamsx(cur_cmd)
+            and _command_line_looks_like_starsailx(cur_cmd)
         ):
             pids.append(cur_pid)
     except Exception:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""python -m teamsx"""
+"""python -m starsailx"""
 from __future__ import annotations
 
 import sys
@@ -9,11 +9,11 @@ from PyQt6.QtWidgets import QMessageBox
 
 def main() -> None:
     try:
-        from teamsx.startup import prepare_runtime
+        from starsailx.startup import prepare_runtime
 
         prepare_runtime()
 
-        from teamsx.app import run_app
+        from starsailx.app import run_app
 
         run_app()
     except Exception as e:

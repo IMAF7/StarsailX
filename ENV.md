@@ -11,7 +11,7 @@
 
 ```powershell
 pip install PyQt6 qtwebview2 qtpy pythonnet pywin32 certifi chardet
-python -m teamsx
+python -m starsailx
 ```
 
 ## 数据目录

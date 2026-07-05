@@ -9,7 +9,7 @@ def run_app() -> None:
     from PyQt6.QtGui import QFont
     from PyQt6.QtWidgets import QApplication
 
-    from teamsx.single_instance import (
+    from starsailx.single_instance import (
         find_other_starsailx_pids,
         start_single_instance_listener,
         terminate_pids,

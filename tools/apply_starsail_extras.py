@@ -9,7 +9,7 @@ TARGET = ROOT / "StarsailX.py"
 def main() -> None:
     text = TARGET.read_text(encoding="utf-8")
 
-    old_import = """from teamsx.site_config import (
+    old_import = """from starsailx.site_config import (
     STARSAIL_APP_URL,
     STARSAIL_SHELL_VERIFY_JS,
     STARSAIL_LOGIN_JS_TEMPLATE,
@@ -30,7 +30,7 @@ def main() -> None:
         text = text.replace(old_import, new_import, 1)
 
     if "STARSAIL_SHELL_CSS_JS" not in text:
-        old_import2 = """from teamsx.site_config import (
+        old_import2 = """from starsailx.site_config import (
     STARSAIL_APP_URL,
     STARSAIL_SHELL_VERIFY_JS,
     STARSAIL_LOGIN_JS_TEMPLATE,

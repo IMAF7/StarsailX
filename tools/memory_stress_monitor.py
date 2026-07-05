@@ -116,8 +116,8 @@ def main() -> int:
                     "free_mb",
                     "webview2_count",
                     "webview2_mb",
-                    "teamsx_count",
-                    "teamsx_mb",
+                    "starsailx_count",
+                    "starsailx_mb",
                 ]
             )
         samples: list[int] = []
@@ -130,7 +130,7 @@ def main() -> int:
             fh.flush()
             samples.append(wv2_mb)
             print(
-                f"{now} free={free_mb}MB wv2={wv2_count}/{wv2_mb}MB teamsx={tx_count}/{tx_mb}MB"
+                f"{now} free={free_mb}MB wv2={wv2_count}/{wv2_mb}MB starsailx={tx_count}/{tx_mb}MB"
             )
             time.sleep(interval)
 
