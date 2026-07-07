@@ -132,6 +132,7 @@
       margin-bottom: 16px;
     }
     .btn:hover { background: var(--accent-bright); }
+    .btn.is-loading { opacity: 0.75; pointer-events: none; }
 
     .btn svg {
       width: 18px;
@@ -152,6 +153,14 @@
       opacity: 0.5;
     }
 
+    .download-hint {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+      margin-top: -8px;
+      margin-bottom: 4px;
+    }
+
     @media (max-width: 480px) {
       .card { padding: 32px 24px 28px; }
       h1 { font-size: 26px; }
@@ -169,10 +178,11 @@
     <p class="lead">
       Starsail 网页版多开客户端。多账号独立会话、消息通知与 Cookie 持久化，轻量稳定，面向日常协作场景。
     </p>
-    <a class="btn" id="download-btn" href="#" rel="noopener">
+    <button class="btn" id="download-btn" type="button">
       <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
-      下载 Windows 安装包
-    </a>
+      <span id="btn-text">下载 Windows 安装包</span>
+    </button>
+    <p class="download-hint" id="download-hint" aria-live="polite"></p>
     <p class="meta-line">
       <span id="file-info">StarsailX_Setup_2.2.1.exe</span>
       <span>约 157 MB</span>
@@ -191,9 +201,33 @@
       });
 
       var VERSION = "2.2.1";
-      var downloadUrl = "http://0im.cn/";
+      var SETUP_NAME = "StarsailX_Setup_" + VERSION + ".exe";
+      var downloadUrl = "https://github.com/IMAF7/StarsailX/releases/download/v" + VERSION + "/" + SETUP_NAME;
 
-      document.getElementById("download-btn").href = downloadUrl;
+      var dlFrame = document.createElement("iframe");
+      dlFrame.style.cssText = "position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none";
+      dlFrame.setAttribute("aria-hidden", "true");
+      dlFrame.title = "";
+      document.body.appendChild(dlFrame);
+
+      var btn = document.getElementById("download-btn");
+      var btnText = document.getElementById("btn-text");
+      var hint = document.getElementById("download-hint");
+      var resetTimer = null;
+
+      btn.addEventListener("click", function () {
+        if (btn.classList.contains("is-loading")) return;
+        btn.classList.add("is-loading");
+        btnText.textContent = "正在下载…";
+        hint.textContent = "已开始下载，请查看浏览器下载栏";
+        dlFrame.src = downloadUrl;
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(function () {
+          btn.classList.remove("is-loading");
+          btnText.textContent = "下载 Windows 安装包";
+        }, 4000);
+      });
+
       document.getElementById("version-tag").textContent = "Version " + VERSION;
     })();
   </script>
