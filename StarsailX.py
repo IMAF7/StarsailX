@@ -1092,6 +1092,1624 @@ class AccountListWidget(QListWidget):
             self.orderChanged.emit()
 
 
+class TitleBrandLabel(QLabel):
+    """标题栏品牌文字，点击切换主题"""
+    clicked = pyqtSignal()
+
+    def __init__(self, text: str = "TeamsX", parent=None):
+        super().__init__(text, parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+
+class ShadowContainer(QWidget):
+    """承载主框的容器，在四周留白处手绘柔和阴影（替代 QGraphicsDropShadowEffect，
+    避免与原生 WebView2 子窗口冲突，也避免顶部出现一条灰线）。"""
+
+    def __init__(self, margin: int, radius: int, parent=None):
+        super().__init__(parent)
+        self._margin = margin
+        self._radius = radius
+        self._show_shadow = True
+        self._color = QColor(0, 0, 0, 38)
+
+    def configure(self, margin: int, show_shadow: bool, color: QColor) -> None:
+        self._margin = margin
+        self._show_shadow = show_shadow
+        self._color = color
+        self.update()
+
+    def paintEvent(self, event):
+        if not self._show_shadow or self._margin <= 0:
+            return
+        m = self._margin
+        inner = QRectF(self.rect()).adjusted(m, m, -m, -m)
+        if inner.width() <= 0 or inner.height() <= 0:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        base_alpha = self._color.alpha()
+        for i in range(m, 0, -1):
+            t = i / m
+            alpha = int(base_alpha * (1.0 - t) ** 1.8)
+            if alpha <= 0:
+                continue
+            c = QColor(self._color)
+            c.setAlpha(alpha)
+            painter.setBrush(c)
+            ring = inner.adjusted(-i, -i, i, i)
+            rad = self._radius + i
+            painter.drawRoundedRect(ring, rad, rad)
+        painter.end()
+
+
+class TitleBarControlButton(QWidget):
+    """标题栏窗口控制键：自绘图标 + 悬停/离开动作动画。"""
+
+    KIND_MIN = "min"
+    KIND_MAX = "max"
+    KIND_CLOSE = "close"
+
+    clicked = pyqtSignal()
+
+    def __init__(self, kind: str, parent=None):
+        super().__init__(parent)
+        self._kind = kind
+        self._light = False
+        self._maximized = False
+        self._pressed = False
+        self._rotation = 0.0
+        self._offset_y = 0.0
+        self._icon_scale = 1.0
+        self._motion_anim = None
+        self._hovered = False
+        self.setFixedSize(46, 38)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def set_theme_light(self, light: bool) -> None:
+        self._light = bool(light)
+        self.update()
+
+    def set_maximized(self, maximized: bool) -> None:
+        if self._kind != self.KIND_MAX:
+            return
+        self._maximized = bool(maximized)
+        self.update()
+
+    def get_icon_rotation(self) -> float:
+        return self._rotation
+
+    def set_icon_rotation(self, value: float) -> None:
+        self._rotation = float(value)
+        self.update()
+
+    icon_rotation = pyqtProperty(float, get_icon_rotation, set_icon_rotation)
+
+    def get_icon_offset_y(self) -> float:
+        return self._offset_y
+
+    def set_icon_offset_y(self, value: float) -> None:
+        self._offset_y = float(value)
+        self.update()
+
+    icon_offset_y = pyqtProperty(float, get_icon_offset_y, set_icon_offset_y)
+
+    def get_icon_scale(self) -> float:
+        return self._icon_scale
+
+    def set_icon_scale(self, value: float) -> None:
+        self._icon_scale = max(0.5, float(value))
+        self.update()
+
+    icon_scale = pyqtProperty(float, get_icon_scale, set_icon_scale)
+
+    def _stop_motion_anim(self) -> None:
+        if self._motion_anim is not None:
+            self._motion_anim.stop()
+
+    def _current_motion_value(self, prop: bytes) -> float:
+        if prop == b"icon_rotation":
+            return self._rotation
+        if prop == b"icon_offset_y":
+            return self._offset_y
+        return self._icon_scale
+
+    def _animate_motion(
+        self,
+        targets: Dict[str, float],
+        duration: int,
+        *,
+        easing_in: bool = True,
+    ) -> None:
+        self._stop_motion_anim()
+        easing = (
+            QEasingCurve.Type.OutCubic
+            if easing_in
+            else QEasingCurve.Type.InOutCubic
+        )
+        if len(targets) == 1:
+            prop_name, end = next(iter(targets.items()))
+            prop = prop_name.encode()
+            anim = QPropertyAnimation(self, prop, self)
+            anim.setDuration(duration)
+            anim.setStartValue(self._current_motion_value(prop))
+            anim.setEndValue(end)
+            anim.setEasingCurve(easing)
+            self._motion_anim = anim
+            anim.start()
+            return
+        group = QParallelAnimationGroup(self)
+        for prop_name, end in targets.items():
+            prop = prop_name.encode()
+            anim = QPropertyAnimation(self, prop, self)
+            anim.setDuration(duration)
+            anim.setStartValue(self._current_motion_value(prop))
+            anim.setEndValue(end)
+            anim.setEasingCurve(easing)
+            group.addAnimation(anim)
+        self._motion_anim = group
+        group.start()
+
+    def _icon_color(self) -> QColor:
+        if self._hovered and self._kind == self.KIND_CLOSE:
+            return QColor(255, 255, 255)
+        return QColor(50, 50, 50) if self._light else QColor(224, 224, 224)
+
+    def _hover_bg_color(self) -> Optional[QColor]:
+        if not self._hovered:
+            return None
+        if self._kind == self.KIND_CLOSE:
+            return QColor(232, 17, 35)
+        return QColor(225, 225, 225) if self._light else QColor(64, 64, 64)
+
+    def _play_hover_motion(self) -> None:
+        if self._kind == self.KIND_CLOSE:
+            self._animate_motion({"icon_rotation": self._rotation + 180.0}, 520)
+        elif self._kind == self.KIND_MIN:
+            self._animate_motion(
+                {"icon_offset_y": 8.0, "icon_scale": 0.78},
+                340,
+            )
+        else:
+            self._animate_motion({"icon_rotation": 90.0}, 380)
+
+    def _play_leave_motion(self) -> None:
+        if self._kind == self.KIND_CLOSE:
+            self._animate_motion({"icon_rotation": 0.0}, 420, easing_in=False)
+        elif self._kind == self.KIND_MIN:
+            self._animate_motion(
+                {"icon_offset_y": 0.0, "icon_scale": 1.0},
+                300,
+                easing_in=False,
+            )
+        else:
+            self._animate_motion({"icon_rotation": 0.0}, 340, easing_in=False)
+
+    def _draw_min_icon(self, painter: QPainter) -> None:
+        painter.drawLine(QPointF(-5, 0), QPointF(5, 0))
+
+    def _draw_max_icon(self, painter: QPainter) -> None:
+        if self._maximized:
+            painter.drawRect(QRectF(-1, -5, 8, 8))
+            painter.drawRect(QRectF(-5, -1, 8, 8))
+        else:
+            painter.drawRect(QRectF(-5, -5, 10, 10))
+
+    def _draw_close_icon(self, painter: QPainter) -> None:
+        painter.drawLine(QPointF(-5, -5), QPointF(5, 5))
+        painter.drawLine(QPointF(5, -5), QPointF(-5, 5))
+
+    def paintEvent(self, event):
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        bg = self._hover_bg_color()
+        if bg is not None:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(bg)
+            painter.drawRoundedRect(QRectF(self.rect()).adjusted(4, 5, -4, -5), 6, 6)
+        cx = self.width() * 0.5
+        cy = self.height() * 0.5
+        scale = self._icon_scale
+        if self._pressed:
+            scale *= 0.88
+        painter.save()
+        painter.translate(cx, cy + self._offset_y)
+        painter.rotate(self._rotation)
+        painter.scale(scale, scale)
+        pen = QPen(self._icon_color())
+        pen.setWidthF(1.6)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        if self._kind == self.KIND_MIN:
+            self._draw_min_icon(painter)
+        elif self._kind == self.KIND_MAX:
+            self._draw_max_icon(painter)
+        else:
+            self._draw_close_icon(painter)
+        painter.restore()
+        painter.end()
+
+    def enterEvent(self, event):
+        self._hovered = True
+        self._play_hover_motion()
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._hovered = False
+        self._pressed = False
+        self._play_leave_motion()
+        self.update()
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._pressed = True
+            self.update()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            was_pressed = self._pressed
+            self._pressed = False
+            self.update()
+            if was_pressed and self.rect().contains(event.position().toPoint()):
+                self.clicked.emit()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
+class GearMenuButton(QWidget):
+    """齿轮工具按钮：点击时旋转并发出信号（用于弹出工具菜单）。"""
+
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._light = False
+        self._rotation = 0.0
+        self._hovered = False
+        self._pressed = False
+        self._spin_anim = None
+        self.setFixedSize(44, 32)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def set_theme_light(self, light: bool) -> None:
+        self._light = bool(light)
+        self.update()
+
+    def get_rotation(self) -> float:
+        return self._rotation
+
+    def set_rotation(self, value: float) -> None:
+        self._rotation = float(value)
+        self.update()
+
+    rotation = pyqtProperty(float, get_rotation, set_rotation)
+
+    def animate_to(self, angle: float) -> None:
+        if self._spin_anim is not None:
+            self._spin_anim.stop()
+        anim = QPropertyAnimation(self, b"rotation", self)
+        anim.setDuration(440)
+        anim.setStartValue(self._rotation)
+        anim.setEndValue(float(angle))
+        anim.setEasingCurve(QEasingCurve.Type.OutBack)
+        self._spin_anim = anim
+        anim.start()
+
+    def _icon_color(self) -> QColor:
+        return QColor(70, 70, 70) if self._light else QColor(224, 224, 224)
+
+    def _hover_bg(self) -> Optional[QColor]:
+        if not self._hovered:
+            return None
+        return QColor(0, 0, 0, 28) if self._light else QColor(255, 255, 255, 30)
+
+    def _gear_path(self) -> QPainterPath:
+        """完整齿轮轮廓：梯形齿环 + 中心镂空（而非放射状细条，避免像太阳）。"""
+        n = 8
+        r_tip = 10.0
+        r_root = 7.4
+        half_tip = math.radians(9.0)
+        half_root = math.radians(17.0)
+        step = 2.0 * math.pi / n
+        path = QPainterPath()
+        first = True
+        for i in range(n):
+            c = i * step
+            for ang, r in (
+                (c - half_root, r_root),
+                (c - half_tip, r_tip),
+                (c + half_tip, r_tip),
+                (c + half_root, r_root),
+            ):
+                x = r * math.cos(ang)
+                y = r * math.sin(ang)
+                if first:
+                    path.moveTo(x, y)
+                    first = False
+                else:
+                    path.lineTo(x, y)
+        path.closeSubpath()
+        path.addEllipse(QPointF(0, 0), 3.8, 3.8)
+        path.setFillRule(Qt.FillRule.OddEvenFill)
+        return path
+
+    def paintEvent(self, event):
+        del event
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        bg = self._hover_bg()
+        if bg is not None:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(bg)
+            painter.drawRoundedRect(
+                QRectF(self.rect()).adjusted(3, 3, -3, -3), 6, 6
+            )
+        cx = self.width() * 0.5
+        cy = self.height() * 0.5
+        scale = 0.9 if self._pressed else 1.0
+        painter.save()
+        painter.translate(cx, cy)
+        painter.rotate(self._rotation)
+        painter.scale(scale, scale)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.fillPath(self._gear_path(), self._icon_color())
+        painter.restore()
+        painter.end()
+
+    def enterEvent(self, event):
+        self._hovered = True
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._hovered = False
+        self._pressed = False
+        self.update()
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._pressed = True
+            self.update()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            was = self._pressed
+            self._pressed = False
+            self.update()
+            if was and self.rect().contains(event.position().toPoint()):
+                self.clicked.emit()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
+class CustomTitleBar(QWidget):
+    """自定义无边框窗口标题栏"""
+
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
+        self.main_window = main_window
+        self.setFixedHeight(38)
+        self._light = False
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 0, 0, 0)
+        layout.setSpacing(0)
+        self.title_label = TitleBrandLabel("TeamsX")
+        self.title_label.setStyleSheet("font-weight: bold; font-size: 14px; border: none; background: transparent;")
+        layout.addWidget(self.title_label)
+        layout.addStretch()
+        self.min_btn = TitleBarControlButton(TitleBarControlButton.KIND_MIN, self)
+        self.max_btn = TitleBarControlButton(TitleBarControlButton.KIND_MAX, self)
+        self.close_btn = TitleBarControlButton(TitleBarControlButton.KIND_CLOSE, self)
+        self.close_btn.setObjectName("CloseBtn")
+        for btn in (self.min_btn, self.max_btn, self.close_btn):
+            layout.addWidget(btn)
+        self.is_maximized = False
+        self._expanded = False
+        self.apply_bar_theme(False)
+        # 事件绑定
+        self.min_btn.clicked.connect(self.main_window.animated_minimize)
+        self.max_btn.clicked.connect(self.toggle_maximize)
+        self.close_btn.clicked.connect(self.main_window.request_close)
+        # 拖拽
+        self.dragging = False
+        self._system_move = False
+        self.drag_start_pos = QPoint()
+        self.before_maximize_geometry = None
+        self._normal_size = (1280, 800)
+        self._reset_drag_timer: Optional[QTimer] = None
+
+    def cancel_drag_state(self):
+        """防止 startSystemMove 过程中丢失 mouseRelease 导致标题栏永久不可拖动。"""
+        try:
+            self.dragging = False
+            self._system_move = False
+        except Exception:
+            pass
+
+    def _can_drag_title(self) -> bool:
+        return not self._expanded and not self.main_window.isFullScreen()
+
+    def recheck_expanded_state(self):
+        """最小化恢复等系统操作后，按实际窗口尺寸校正展开状态。"""
+        try:
+            mw = self.main_window
+            if mw.isFullScreen():
+                return
+            screen = QGuiApplication.primaryScreen()
+            if not screen:
+                return
+            ag = screen.availableGeometry()
+            g = mw.geometry()
+            if g.width() >= ag.width() - 4 and g.height() >= ag.height() - 4:
+                self._expanded = True
+            elif (
+                abs(g.width() - self._normal_size[0]) <= 8
+                and abs(g.height() - self._normal_size[1]) <= 8
+            ):
+                self._expanded = False
+            self.is_maximized = self._expanded
+            self.max_btn.set_maximized(self._expanded)
+        except Exception:
+            pass
+
+    def sync_window_state(self):
+        """同步按钮状态（避免窗口状态变化后内部标记不同步）。"""
+        try:
+            self.cancel_drag_state()
+            if self.main_window.isFullScreen():
+                self._expanded = False
+                self.is_maximized = False
+                self.max_btn.set_maximized(False)
+                return
+            self.is_maximized = self._expanded
+            self.max_btn.set_maximized(self._expanded)
+        except Exception:
+            pass
+
+    def apply_bar_theme(self, light: bool):
+        self._light = light
+        if light:
+            self.setStyleSheet(
+                "background-color: #f3f3f3; border-bottom: 1px solid #ddd;"
+            )
+            self.title_label.setStyleSheet(
+                "color: #1a1a1a; font-weight: bold; font-size: 14px; border: none; background: transparent;"
+            )
+        else:
+            self.setStyleSheet(
+                "background-color: #1e1e1e; border-bottom: 1px solid #333;"
+            )
+            self.title_label.setStyleSheet(
+                "color: #e0e0e0; font-weight: bold; font-size: 14px; border: none; background: transparent;"
+            )
+        for btn in (self.min_btn, self.max_btn, self.close_btn):
+            btn.set_theme_light(light)
+
+    def toggle_maximize(self):
+        """
+        展开 = 铺满工作区；还原 = 恢复几何与可缩放状态。
+        """
+        self.cancel_drag_state()
+        try:
+            self.main_window.end_window_drag()
+        except Exception:
+            pass
+        try:
+            if self.main_window.isFullScreen():
+                self.main_window.showNormal()
+        except Exception:
+            pass
+
+        mw = self.main_window
+
+        # 原生窗口：直接用系统 showMaximized/showNormal，最大化/还原动画由 DWM 提供。
+        if getattr(mw, "_native_frame", False):
+            if mw.isMaximized():
+                mw.showNormal()
+                self._expanded = False
+            else:
+                mw.showMaximized()
+                self._expanded = True
+            self.sync_window_state()
+            try:
+                if self._reset_drag_timer is None:
+                    self._reset_drag_timer = QTimer(self)
+                    self._reset_drag_timer.setSingleShot(True)
+                    self._reset_drag_timer.timeout.connect(self.cancel_drag_state)
+                self._reset_drag_timer.start(200)
+            except Exception:
+                pass
+            return
+
+        target = None
+        if self._expanded:
+            w, h = self._normal_size
+            # 还原后保持可自由缩放：仅恢复最小尺寸，不再锁死最大尺寸
+            mw.setMinimumSize(900, 600)
+            mw.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
+            if self.before_maximize_geometry:
+                target = QRect(self.before_maximize_geometry)
+            else:
+                screen = QGuiApplication.primaryScreen()
+                if screen:
+                    ag = screen.availableGeometry()
+                    target = QRect(
+                        ag.x() + max(0, (ag.width() - w) // 2),
+                        ag.y() + max(0, (ag.height() - h) // 2),
+                        w,
+                        h,
+                    )
+            next_expanded = False
+        else:
+            self.before_maximize_geometry = mw.geometry()
+            self._normal_size = (mw.width(), mw.height())
+            screen = QGuiApplication.primaryScreen()
+            if screen:
+                ag = screen.availableGeometry()
+                mw.setMinimumSize(640, 480)
+                mw.setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX)
+                target = QRect(ag)
+            next_expanded = True
+
+        if target is None:
+            return
+
+        def _apply_geometry():
+            mw.setGeometry(target)
+            self._expanded = next_expanded
+            self.sync_window_state()
+            if hasattr(self.main_window, "_sync_window_shadow_layout"):
+                self.main_window._sync_window_shadow_layout()
+            try:
+                if self._reset_drag_timer is None:
+                    self._reset_drag_timer = QTimer(self)
+                    self._reset_drag_timer.setSingleShot(True)
+                    self._reset_drag_timer.timeout.connect(self.cancel_drag_state)
+                self._reset_drag_timer.start(200)
+            except Exception:
+                pass
+
+        # 直接切换几何，不做透明度淡入淡出（在半透明 WebView2 窗口上会“闪一下”）。
+        _apply_geometry()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._can_drag_title():
+            win = self.main_window.windowHandle()
+            if win is not None:
+                try:
+                    if win.startSystemMove():
+                        self._system_move = True
+                        self.main_window.begin_window_drag()
+                        event.accept()
+                        return
+                except Exception:
+                    pass
+            self.main_window.begin_window_drag()
+            self.dragging = True
+            self.drag_start_pos = (
+                event.globalPosition().toPoint() - self.main_window.frameGeometry().topLeft()
+            )
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._system_move:
+            return
+        if (
+            self.dragging
+            and event.buttons() == Qt.MouseButton.LeftButton
+            and self._can_drag_title()
+        ):
+            self.main_window.move(event.globalPosition().toPoint() - self.drag_start_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.dragging or self._system_move:
+                self.main_window.end_window_drag()
+            self.dragging = False
+            self._system_move = False
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.toggle_maximize()
+            event.accept()
+
+class EditRemarkDialog(QDialog):
+    def __init__(self, current_remark, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("编辑备注")
+        self.setModal(True)
+        light = bool(getattr(parent, "_theme_light", False)) if parent else False
+        self._build_ui(current_remark, light)
+
+    def _build_ui(self, current_remark, light: bool) -> None:
+        if light:
+            pal = {
+                "card_bg": "#ffffff", "card_border": "#e6e8ec", "title": "#1f2329",
+                "label": "#5b616b", "input_bg": "#f6f8fb", "input_border": "#dfe3e8",
+                "input_focus": "#3b82f6", "input_text": "#1f2329",
+                "accent": "#2f6fed", "accent_hover": "#2560d6",
+                "ghost_text": "#6b7280", "ghost_border": "#d6dae0", "ghost_hover": "#f0f2f5",
+                "shadow_alpha": 60,
+            }
+        else:
+            pal = {
+                "card_bg": "#2b2d31", "card_border": "#3a3d42", "title": "#f2f3f5",
+                "label": "#aab0b8", "input_bg": "#34373c", "input_border": "#42454a",
+                "input_focus": "#5a9cf5", "input_text": "#f2f3f5",
+                "accent": "#3b82f6", "accent_hover": "#4a90f0",
+                "ghost_text": "#b6bbc2", "ghost_border": "#4a4d52", "ghost_hover": "#3a3d42",
+                "shadow_alpha": 130,
+            }
+        self.setFixedSize(380, 232)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 20, 24, 26)
+
+        card = QFrame()
+        card.setObjectName("editRemarkCard")
+        card.setStyleSheet(
+            f"QFrame#editRemarkCard {{ background: {pal['card_bg']};"
+            f"border: 1px solid {pal['card_border']}; border-radius: 18px; }}"
+        )
+        shadow = QGraphicsDropShadowEffect(card)
+        shadow.setBlurRadius(26)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(0, 0, 0, pal["shadow_alpha"]))
+        card.setGraphicsEffect(shadow)
+
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(24, 22, 24, 20)
+        lay.setSpacing(13)
+
+        title = QLabel("编辑备注")
+        title.setStyleSheet(
+            f"font-size: 18px; font-weight: 700; color: {pal['title']};"
+            "border: none; background: transparent;"
+        )
+        lay.addWidget(title)
+
+        lbl = QLabel("备注")
+        lbl.setStyleSheet(
+            f"font-size: 12px; color: {pal['label']}; border: none; background: transparent;"
+        )
+        self.remark_edit = QLineEdit()
+        self.remark_edit.setMaxLength(50)
+        self.remark_edit.setText(current_remark)
+        self.remark_edit.setFixedHeight(36)
+        self.remark_edit.setStyleSheet(
+            f"QLineEdit {{ background: {pal['input_bg']}; color: {pal['input_text']};"
+            f"border: 1px solid {pal['input_border']}; border-radius: 9px;"
+            "padding: 7px 10px; font-size: 13px; }"
+            f"QLineEdit:focus {{ border: 1px solid {pal['input_focus']}; }}"
+        )
+        block = QVBoxLayout()
+        block.setContentsMargins(0, 0, 0, 0)
+        block.setSpacing(4)
+        block.addWidget(lbl)
+        block.addWidget(self.remark_edit)
+        lay.addLayout(block)
+
+        lay.addStretch()
+        lay.addSpacing(8)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton("取消")
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setFixedHeight(34)
+        cancel_btn.setMinimumWidth(80)
+        cancel_btn.setStyleSheet(
+            f"QPushButton {{ color: {pal['ghost_text']}; background: transparent;"
+            f"border: 1px solid {pal['ghost_border']}; border-radius: 9px;"
+            "padding: 5px 16px; font-size: 12px; }"
+            f"QPushButton:hover {{ background: {pal['ghost_hover']}; color: {pal['title']}; }}"
+        )
+        cancel_btn.clicked.connect(self.reject)
+        ok_btn = QPushButton("确定")
+        ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok_btn.setDefault(True)
+        ok_btn.setFixedHeight(34)
+        ok_btn.setMinimumWidth(80)
+        ok_btn.setStyleSheet(
+            f"QPushButton {{ color: #ffffff; background: {pal['accent']}; border: none;"
+            "border-radius: 9px; padding: 5px 16px; font-size: 12px; font-weight: 600; }"
+            f"QPushButton:hover {{ background: {pal['accent_hover']}; }}"
+        )
+        ok_btn.clicked.connect(self.accept)
+        btn_row.addWidget(cancel_btn)
+        btn_row.addSpacing(10)
+        btn_row.addWidget(ok_btn)
+        lay.addLayout(btn_row)
+
+        root.addWidget(card)
+
+    def showEvent(self, event):
+        parent = self.parentWidget()
+        if parent is not None:
+            g = parent.frameGeometry()
+            self.move(
+                g.center().x() - self.width() // 2,
+                g.center().y() - self.height() // 2,
+            )
+        super().showEvent(event)
+
+    def get_remark(self):
+        return self.remark_edit.text().strip()
+
+class AddAccountDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("添加账号")
+        self.setModal(True)
+        light = bool(getattr(parent, "_theme_light", False)) if parent else False
+        self._build_ui(light)
+
+    def _palette(self, light: bool) -> dict:
+        if light:
+            return {
+                "card_bg": "#ffffff", "card_border": "#e6e8ec",
+                "title": "#1f2329", "label": "#5b616b",
+                "input_bg": "#f6f8fb", "input_border": "#dfe3e8",
+                "input_focus": "#3b82f6", "input_text": "#1f2329",
+                "accent": "#2f6fed", "accent_hover": "#2560d6",
+                "ghost_text": "#6b7280", "ghost_border": "#d6dae0", "ghost_hover": "#f0f2f5",
+                "shadow_alpha": 60,
+            }
+        return {
+            "card_bg": "#2b2d31", "card_border": "#3a3d42",
+            "title": "#f2f3f5", "label": "#aab0b8",
+            "input_bg": "#34373c", "input_border": "#42454a",
+            "input_focus": "#5a9cf5", "input_text": "#f2f3f5",
+            "accent": "#3b82f6", "accent_hover": "#4a90f0",
+            "ghost_text": "#b6bbc2", "ghost_border": "#4a4d52", "ghost_hover": "#3a3d42",
+            "shadow_alpha": 130,
+        }
+
+    def _build_ui(self, light: bool) -> None:
+        pal = self._palette(light)
+        self.setFixedSize(420, 348)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 20, 24, 26)
+
+        card = QFrame()
+        card.setObjectName("addAccountCard")
+        card.setStyleSheet(
+            f"QFrame#addAccountCard {{ background: {pal['card_bg']};"
+            f"border: 1px solid {pal['card_border']}; border-radius: 18px; }}"
+        )
+        shadow = QGraphicsDropShadowEffect(card)
+        shadow.setBlurRadius(26)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(0, 0, 0, pal["shadow_alpha"]))
+        card.setGraphicsEffect(shadow)
+
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(24, 22, 24, 20)
+        lay.setSpacing(13)
+
+        title = QLabel("添加账号")
+        title.setStyleSheet(
+            f"font-size: 18px; font-weight: 700; color: {pal['title']};"
+            "border: none; background: transparent;"
+        )
+        lay.addWidget(title)
+
+        label_css = (
+            f"font-size: 12px; color: {pal['label']};"
+            "border: none; background: transparent;"
+        )
+        input_css = (
+            f"QLineEdit {{ background: {pal['input_bg']}; color: {pal['input_text']};"
+            f"border: 1px solid {pal['input_border']}; border-radius: 9px;"
+            "padding: 7px 10px; font-size: 13px; }"
+            f"QLineEdit:focus {{ border: 1px solid {pal['input_focus']}; }}"
+        )
+
+        self.remark_edit = QLineEdit()
+        self.remark_edit.setMaxLength(50)
+        self.remark_edit.setPlaceholderText("例如：大河")
+        self.email_edit = QLineEdit()
+        self.email_edit.setPlaceholderText("邮箱（可选）")
+        self.password_edit = QLineEdit()
+        self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_edit.setPlaceholderText("密码（可选）")
+        for lbl_text, edit in (
+            ("备注", self.remark_edit),
+            ("账号", self.email_edit),
+            ("密码", self.password_edit),
+        ):
+            lbl = QLabel(lbl_text)
+            lbl.setStyleSheet(label_css)
+            edit.setStyleSheet(input_css)
+            edit.setFixedHeight(36)
+            block = QVBoxLayout()
+            block.setContentsMargins(0, 0, 0, 0)
+            block.setSpacing(4)
+            block.addWidget(lbl)
+            block.addWidget(edit)
+            lay.addLayout(block)
+
+        lay.addStretch()
+        lay.addSpacing(8)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton("取消")
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setFixedHeight(34)
+        cancel_btn.setMinimumWidth(76)
+        cancel_btn.setStyleSheet(
+            f"QPushButton {{ color: {pal['ghost_text']}; background: transparent;"
+            f"border: 1px solid {pal['ghost_border']}; border-radius: 9px;"
+            "padding: 5px 16px; font-size: 12px; }"
+            f"QPushButton:hover {{ background: {pal['ghost_hover']}; color: {pal['title']}; }}"
+        )
+        cancel_btn.clicked.connect(self.reject)
+
+        ok_btn = QPushButton("确定")
+        ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok_btn.setDefault(True)
+        ok_btn.setFixedHeight(34)
+        ok_btn.setMinimumWidth(76)
+        ok_btn.setStyleSheet(
+            f"QPushButton {{ color: #ffffff; background: {pal['accent']}; border: none;"
+            "border-radius: 9px; padding: 5px 16px; font-size: 12px; font-weight: 600; }"
+            f"QPushButton:hover {{ background: {pal['accent_hover']}; }}"
+        )
+        ok_btn.clicked.connect(self.accept)
+        btn_row.addWidget(cancel_btn)
+        btn_row.addSpacing(10)
+        btn_row.addWidget(ok_btn)
+        lay.addLayout(btn_row)
+
+        root.addWidget(card)
+
+    def showEvent(self, event):
+        parent = self.parentWidget()
+        if parent is not None:
+            g = parent.frameGeometry()
+            self.move(
+                g.center().x() - self.width() // 2,
+                g.center().y() - self.height() // 2,
+            )
+        super().showEvent(event)
+
+    def get_remark(self):
+        return self.remark_edit.text().strip()
+
+    def get_email(self):
+        return self.email_edit.text().strip()
+
+    def get_password(self):
+        return self.password_edit.text()
+
+
+class Database:
+    def __init__(self):
+        self.db_file = AppPaths.db_file()
+        self._lock = threading.RLock()
+        self.init_db()
+
+    def get_connection(self):
+        return sqlite3.connect(self.db_file, check_same_thread=False, timeout=30)
+
+    def init_db(self):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("PRAGMA journal_mode=WAL")
+                    cursor.execute("PRAGMA synchronous=NORMAL")
+                    cursor.execute("PRAGMA cache_size=-10000")
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='accounts'"
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute('''
+                        CREATE TABLE accounts (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            remark TEXT NOT NULL,
+                            user_data_dir TEXT,
+                            cache_dir TEXT,
+                            email TEXT,
+                            password TEXT,
+                            login_status TEXT DEFAULT 'pending',
+                            is_pinned INTEGER DEFAULT 0,
+                            pin_order INTEGER DEFAULT 0,
+                            sort_order INTEGER DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                        ''')
+                        cursor.execute('CREATE INDEX IF NOT EXISTS idx_remark ON accounts(remark)')
+                        cursor.execute(
+                            'CREATE INDEX IF NOT EXISTS idx_email ON accounts(email)'
+                        )
+                    else:
+                        cursor.execute("PRAGMA table_info(accounts)")
+                        columns = [c[1] for c in cursor.fetchall()]
+                        for col, ddl in [
+                            ("user_data_dir", "ALTER TABLE accounts ADD COLUMN user_data_dir TEXT"),
+                            ("cache_dir", "ALTER TABLE accounts ADD COLUMN cache_dir TEXT"),
+                            ("email", "ALTER TABLE accounts ADD COLUMN email TEXT"),
+                            ("password", "ALTER TABLE accounts ADD COLUMN password TEXT"),
+                            (
+                                "login_status",
+                                "ALTER TABLE accounts ADD COLUMN login_status TEXT DEFAULT 'pending'",
+                            ),
+                            ("is_pinned", "ALTER TABLE accounts ADD COLUMN is_pinned INTEGER DEFAULT 0"),
+                            ("pin_order", "ALTER TABLE accounts ADD COLUMN pin_order INTEGER DEFAULT 0"),
+                            ("sort_order", "ALTER TABLE accounts ADD COLUMN sort_order INTEGER DEFAULT 0"),
+                        ]:
+                            if col not in columns:
+                                cursor.execute(ddl)
+                        cursor.execute(
+                            "UPDATE accounts SET sort_order = id WHERE sort_order IS NULL"
+                        )
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='groups'"
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute('''
+                        CREATE TABLE groups (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL UNIQUE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                        ''')
+                        cursor.execute('''
+                        CREATE TABLE account_groups (
+                            account_id INTEGER NOT NULL,
+                            group_id INTEGER NOT NULL,
+                            PRIMARY KEY (account_id, group_id),
+                            FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+                            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+                        )
+                        ''')
+                    # settings：用于锁定密码等轻量配置
+                    cursor.execute(
+                        "CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT)"
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"数据库初始化错误: {e}")
+            raise RuntimeError(f"无法初始化数据库: {self.db_file}") from e
+
+    def get_setting(self, key: str) -> Optional[str]:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT v FROM settings WHERE k = ?", (key,))
+                row = cursor.fetchone()
+                return row[0] if row else None
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return None
+
+    def set_setting(self, key: str, value: str):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v",
+                        (key, value),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"保存设置错误: {e}")
+
+    def _ensure_account_paths(self, account_id: int, remark: str) -> Tuple[str, str]:
+        session_dir, cache_dir = AppPaths.account_dirs(remark, account_id)
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                'UPDATE accounts SET user_data_dir = ?, cache_dir = ? WHERE id = ?',
+                (session_dir, cache_dir, account_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return session_dir, cache_dir
+
+    def get_all_accounts(self):
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT id, remark, user_data_dir, cache_dir, email, password, login_status, '
+                    'COALESCE(is_pinned,0), COALESCE(pin_order,0), COALESCE(sort_order, id) '
+                    'FROM accounts '
+                    'ORDER BY is_pinned DESC, pin_order ASC, sort_order ASC, id ASC'
+                )
+                return cursor.fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"查询错误: {e}")
+            return []
+
+    def count_pinned_accounts(self, exclude_id: Optional[int] = None) -> int:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                if exclude_id is not None:
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM accounts WHERE is_pinned = 1 AND id != ?",
+                        (exclude_id,),
+                    )
+                else:
+                    cursor.execute("SELECT COUNT(*) FROM accounts WHERE is_pinned = 1")
+                return int(cursor.fetchone()[0])
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return 0
+
+    def is_account_pinned(self, account_id: int) -> bool:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT COALESCE(is_pinned,0) FROM accounts WHERE id = ?", (account_id,)
+                )
+                row = cursor.fetchone()
+                return bool(row and row[0])
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return False
+
+    def set_account_pinned(self, account_id: int, pinned: bool) -> Tuple[bool, str]:
+        try:
+            with self._lock:
+                if pinned and self.count_pinned_accounts(exclude_id=account_id) >= MAX_PINNED_ACCOUNTS:
+                    return False, f"最多置顶 {MAX_PINNED_ACCOUNTS} 个账号"
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    if pinned:
+                        cursor.execute(
+                            "SELECT COALESCE(MAX(pin_order), -1) + 1 FROM accounts WHERE is_pinned = 1"
+                        )
+                        pin_order = int(cursor.fetchone()[0])
+                        cursor.execute(
+                            "UPDATE accounts SET is_pinned = 1, pin_order = ? WHERE id = ?",
+                            (pin_order, account_id),
+                        )
+                    else:
+                        cursor.execute(
+                            "UPDATE accounts SET is_pinned = 0, pin_order = 0 WHERE id = ?",
+                            (account_id,),
+                        )
+                    conn.commit()
+                    return True, ""
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            return False, str(e)
+
+    def save_display_order(self, pinned_ids: List[int], unpinned_ids: List[int]):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    for i, aid in enumerate(pinned_ids):
+                        cursor.execute(
+                            "UPDATE accounts SET is_pinned = 1, pin_order = ?, sort_order = ? WHERE id = ?",
+                            (i, i, aid),
+                        )
+                    for i, aid in enumerate(unpinned_ids):
+                        cursor.execute(
+                            "UPDATE accounts SET is_pinned = 0, pin_order = 0, sort_order = ? WHERE id = ?",
+                            (i, aid),
+                        )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"保存排序错误: {e}")
+
+    def add_account(self, remark, email=None, password=None):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        '''
+                        INSERT INTO accounts (remark, user_data_dir, cache_dir, email, password, login_status)
+                        VALUES (?, '', '', ?, ?, 'pending')
+                        ''',
+                        (remark, email or "", password or ""),
+                    )
+                    conn.commit()
+                    account_id = cursor.lastrowid
+                finally:
+                    conn.close()
+            if account_id:
+                self._ensure_account_paths(account_id, remark)
+            return account_id
+        except sqlite3.Error as e:
+            print(f"添加账号错误: {e}")
+            return None
+
+    def delete_account(self, account_id):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        'SELECT user_data_dir, cache_dir FROM accounts WHERE id = ?',
+                        (account_id,),
+                    )
+                    res = cursor.fetchone()
+                    if res:
+                        for path in (res[0], res[1]):
+                            if path and os.path.exists(path):
+                                try:
+                                    shutil.rmtree(path, ignore_errors=True)
+                                except Exception as e:
+                                    print(f"删除目录失败 {path}: {e}")
+                        if res[0]:
+                            parent = os.path.dirname(res[0])
+                            if parent and os.path.basename(parent) == "session":
+                                profile_parent = os.path.dirname(parent)
+                                if os.path.isdir(profile_parent):
+                                    shutil.rmtree(profile_parent, ignore_errors=True)
+                    cursor.execute('DELETE FROM accounts WHERE id = ?', (account_id,))
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"删除账号错误: {e}")
+
+    def update_remark(self, account_id, remark):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        'UPDATE accounts SET remark = ? WHERE id = ?', (remark, account_id)
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"更新备注错误: {e}")
+
+    def update_account_credentials(
+        self, account_id, remark=None, email=None, password=None
+    ):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    if remark is not None:
+                        cursor.execute(
+                            'UPDATE accounts SET remark = ? WHERE id = ?', (remark, account_id)
+                        )
+                    if email is not None:
+                        cursor.execute(
+                            'UPDATE accounts SET email = ? WHERE id = ?', (email, account_id)
+                        )
+                    if password is not None:
+                        cursor.execute(
+                            'UPDATE accounts SET password = ? WHERE id = ?',
+                            (password, account_id),
+                        )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"更新账号凭据错误: {e}")
+
+    def set_login_status(self, account_id: int, status: str):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        'UPDATE accounts SET login_status = ? WHERE id = ?',
+                        (status, account_id),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"更新登录状态错误: {e}")
+
+    def find_account_by_email(self, email: str):
+        if not email:
+            return None
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT id, remark, user_data_dir, cache_dir, email, password, login_status '
+                    'FROM accounts WHERE lower(email) = lower(?)',
+                    (email.strip(),),
+                )
+                return cursor.fetchone()
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"按邮箱查询错误: {e}")
+            return None
+
+    def get_account(self, account_id):
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT id, remark, user_data_dir, cache_dir, email, password, login_status '
+                    'FROM accounts WHERE id = ?',
+                    (account_id,),
+                )
+                row = cursor.fetchone()
+                if row and (not row[2] or not row[3]):
+                    session_dir, cache_dir = self._ensure_account_paths(row[0], row[1])
+                    return (row[0], row[1], session_dir, cache_dir, row[4], row[5], row[6])
+                return row
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"获取账号错误: {e}")
+            return None
+
+    def get_all_groups(self) -> List[Tuple]:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, name FROM groups ORDER BY id")
+                return cursor.fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"查询分组错误: {e}")
+            return []
+
+    def add_group(self, name: str) -> Optional[int]:
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("INSERT INTO groups (name) VALUES (?)", (name.strip(),))
+                    conn.commit()
+                    return cursor.lastrowid
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"添加分组错误: {e}")
+            return None
+
+    def update_group_name(self, group_id: int, name: str):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE groups SET name = ? WHERE id = ?", (name.strip(), group_id)
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"更新分组错误: {e}")
+
+    def delete_group(self, group_id: int):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("DELETE FROM account_groups WHERE group_id = ?", (group_id,))
+                    cursor.execute("DELETE FROM groups WHERE id = ?", (group_id,))
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"删除分组错误: {e}")
+
+    def get_account_ids_in_group(self, group_id: int) -> Set[int]:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT account_id FROM account_groups WHERE group_id = ?", (group_id,)
+                )
+                return {row[0] for row in cursor.fetchall()}
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"查询分组成员错误: {e}")
+            return set()
+
+    def get_account_ids_in_other_groups(self, exclude_group_id: int) -> Set[int]:
+        """已分配到其它分组的账号（编辑当前分组时不重复展示）"""
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT account_id FROM account_groups WHERE group_id != ?",
+                    (exclude_group_id,),
+                )
+                return {row[0] for row in cursor.fetchall()}
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            print(f"查询其它分组成员错误: {e}")
+            return set()
+
+    def set_group_members(self, group_id: int, account_ids: List[int]):
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "DELETE FROM account_groups WHERE group_id = ?", (group_id,)
+                    )
+                    for aid in account_ids:
+                        cursor.execute(
+                            "INSERT OR IGNORE INTO account_groups (account_id, group_id) VALUES (?, ?)",
+                            (aid, group_id),
+                        )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"设置分组成员错误: {e}")
+
+    def get_groups_for_account(self, account_id: int) -> List[int]:
+        try:
+            conn = self.get_connection()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT group_id FROM account_groups WHERE account_id = ?", (account_id,)
+                )
+                return [row[0] for row in cursor.fetchall()]
+            finally:
+                conn.close()
+        except sqlite3.Error as e:
+            return []
+
+    def account_has_group(self, account_id: int) -> bool:
+        return bool(self.get_groups_for_account(account_id))
+
+    def get_account_group(self, account_id: int) -> Optional[Tuple[int, str]]:
+        gids = self.get_groups_for_account(account_id)
+        if not gids:
+            return None
+        gid = gids[0]
+        for g_id, name in self.get_all_groups():
+            if g_id == gid:
+                return gid, name
+        return gid, ""
+
+    def set_account_group(self, account_id: int, group_id: Optional[int]) -> bool:
+        try:
+            with self._lock:
+                conn = self.get_connection()
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "DELETE FROM account_groups WHERE account_id = ?", (account_id,)
+                    )
+                    if group_id:
+                        cursor.execute(
+                            "INSERT OR IGNORE INTO account_groups (account_id, group_id) VALUES (?, ?)",
+                            (account_id, group_id),
+                        )
+                    conn.commit()
+                    return True
+                finally:
+                    conn.close()
+        except sqlite3.Error as e:
+            print(f"设置账号分组错误: {e}")
+            return False
+
+
+class ImageClipboardHelper(QObject):
+    """通过当前 WebView 页面上下文拉取图片并写入系统剪贴板"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def copy_via_webview(self, web_view: "TeamsWebView", image_url: str):
+        if not web_view or not web_view.page() or not image_url:
+            return
+        url_js = json.dumps(image_url)
+        js = f"""
+        (function() {{
+            const targetUrl = {url_js};
+            function toDataUrl(img) {{
+                const w = img.naturalWidth || img.width || 0;
+                const h = img.naturalHeight || img.height || 0;
+                if (!w || !h) return '';
+                const c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0);
+                return c.toDataURL('image/png');
+            }}
+            const imgs = document.querySelectorAll('img');
+            for (let i = 0; i < imgs.length; i++) {{
+                const im = imgs[i];
+                if (im.src === targetUrl || im.currentSrc === targetUrl) {{
+                    if (im.complete && im.naturalWidth) return toDataUrl(im);
+                }}
+            }}
+            return '';
+        }})();
+        """
+        web_view.page().runJavaScript(js, lambda data: self._apply_data_url(web_view, data, image_url))
+
+    def _apply_data_url(self, web_view, data_url, fallback_url: str):
+        if data_url and isinstance(data_url, str) and data_url.startswith("data:"):
+            bridge = getattr(web_view, "_notify_bridge", None)
+            if bridge:
+                bridge.copyImageDataUrl(data_url)
+            return
+        self._fetch_with_credentials(web_view, fallback_url)
+
+    def _fetch_with_credentials(self, web_view, image_url: str):
+        if not web_view or not web_view.page():
+            return
+        url_js = json.dumps(image_url)
+        js = f"""
+        (function() {{
+            return fetch({url_js}, {{credentials: 'include', mode: 'cors'}})
+                .then(r => r.blob())
+                .then(b => new Promise((res, rej) => {{
+                    const fr = new FileReader();
+                    fr.onload = () => res(fr.result);
+                    fr.onerror = rej;
+                    fr.readAsDataURL(b);
+                }}))
+                .catch(() => '');
+        }})();
+        """
+        web_view.page().runJavaScript(js, lambda data: self._finish(data))
+
+    def _finish(self, data_url):
+        if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
+            print("复制图片失败: 无法获取图片数据")
+            return
+        try:
+            comma = data_url.find(",")
+            raw = base64.b64decode(data_url[comma + 1 :].strip())
+            img = QImage()
+            if not img.loadFromData(raw):
+                print("剪贴板: 无法解析图片")
+                return
+            pix = QPixmap.fromImage(img)
+            if not pix.isNull():
+                QGuiApplication.clipboard().setPixmap(pix)
+        except Exception as e:
+            print(f"复制图片到剪贴板失败: {e}")
+
+
+class JsNotifyBridge(QObject):
+    """网页消息与图片复制桥接"""
+
+    def __init__(self, account_id: int, callback, web_view=None, image_helper=None, parent=None):
+        super().__init__(parent)
+        self._account_id = account_id
+        self._callback = callback
+        self._web_view = web_view
+        self._image_helper = image_helper
+
+    def set_web_view(self, web_view):
+        self._web_view = web_view
+
+    def set_callback(self, callback):
+        self._callback = callback
+
+    @pyqtSlot(str, str, str, int)
+    def post(self, msg_type: str, sender: str, content: str, count: int):
+        if not self._callback:
+            return
+        aid = self._account_id
+        cb = self._callback
+
+        def _deliver():
+            try:
+                cb(aid, int(count), msg_type, sender, content or "")
+            except Exception as e:
+                print(f"通知桥接错误: {e}")
+
+        QTimer.singleShot(0, _deliver)
+
+    @pyqtSlot(str)
+    def cacheNotifySoundUrl(self, url: str) -> None:
+        host = None
+        if self._web_view is not None:
+            host = getattr(self._web_view, "_host_main", None)
+        if host is not None and hasattr(host, "_cache_teams_notify_sound_url"):
+            u = (url or "").strip()
+            QTimer.singleShot(0, lambda h=host, u=u: h._cache_teams_notify_sound_url(u))
+
+    @pyqtSlot(str)
+    def copyImageDataUrl(self, data_url: str):
+        if not data_url or not data_url.startswith("data:"):
+            return
+        try:
+            comma = data_url.find(",")
+            if comma < 0:
+                return
+            raw = base64.b64decode(data_url[comma + 1 :].strip())
+            img = QImage()
+            if not img.loadFromData(raw):
+                print("剪贴板: 无法解析图片")
+                return
+            pix = QPixmap.fromImage(img)
+            if not pix.isNull():
+                QGuiApplication.clipboard().setPixmap(pix)
+        except Exception as e:
+            print(f"复制图片到剪贴板失败: {e}")
+
+    @pyqtSlot(str)
+    def copyImageUrl(self, image_url: str):
+        if not image_url:
+            return
+        if self._image_helper and self._web_view:
+            self._image_helper.copy_via_webview(self._web_view, image_url)
+        else:
+            print("复制图片失败: 桥接未就绪")
+
+
+
 # ==================== WebView 类 ====================
 
 _TEAMS_LOGIN_FAIL_REASONS = frozenset({

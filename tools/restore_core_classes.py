@@ -4,6 +4,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "TeamsX.py"
+if not SRC.is_file():
+    SRC = Path(r"c:\Users\admin\Desktop\新建文件夹\DDDA\TeamsX.py")
 DST = ROOT / "StarsailX.py"
 
 SKIP_CLASSES = {
