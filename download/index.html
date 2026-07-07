@@ -11,7 +11,6 @@
       --bg-deep: #141a24;
       --bg-mid: #1a2230;
       --surface: rgba(255, 255, 255, 0.045);
-      --surface-hover: rgba(255, 255, 255, 0.07);
       --border: rgba(255, 255, 255, 0.1);
       --border-strong: rgba(255, 255, 255, 0.16);
       --text: #eef1f6;
@@ -19,13 +18,16 @@
       --accent: #4a7fd4;
       --accent-bright: #6a9ae8;
       --gold: #c9b07a;
-      --radius: 4px;
+      --radius: 6px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       color: var(--text);
       background: var(--bg-deep);
@@ -33,9 +35,8 @@
       -webkit-font-smoothing: antialiased;
       -webkit-user-select: none;
       user-select: none;
+      padding: 32px 20px;
     }
-
-    .btn, .copy-status { -webkit-user-select: text; user-select: text; }
 
     body::before {
       content: "";
@@ -49,29 +50,35 @@
     }
 
     .top-bar {
-      position: relative;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 1;
       height: 2px;
       background: linear-gradient(90deg, transparent 5%, var(--gold) 50%, transparent 95%);
       opacity: 0.7;
     }
 
-    .page {
+    .card {
       position: relative;
       z-index: 1;
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 56px 32px 72px;
+      width: 100%;
+      max-width: 440px;
+      padding: 40px 36px 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+      text-align: center;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 56px;
-      align-items: center;
-      margin-bottom: 56px;
-      padding-bottom: 56px;
-      border-bottom: 1px solid var(--border);
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 18px;
+      border: 1px solid var(--border-strong);
+      margin-bottom: 20px;
     }
 
     .eyebrow {
@@ -80,98 +87,64 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 16px;
-    }
-
-    .brand-row {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      margin-bottom: 20px;
-    }
-
-    .logo {
-      width: 52px;
-      height: 52px;
-      border-radius: 10px;
-      border: 1px solid var(--border-strong);
+      margin-bottom: 12px;
     }
 
     h1 {
-      font-size: 36px;
+      font-size: 32px;
       font-weight: 600;
       letter-spacing: -0.02em;
       line-height: 1.15;
+      margin-bottom: 4px;
     }
 
     .version {
-      display: inline-block;
-      margin-top: 6px;
       font-size: 13px;
       color: var(--muted);
-      font-weight: 400;
+      margin-bottom: 20px;
     }
 
     .lead {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--muted);
-      max-width: 420px;
-      margin-bottom: 32px;
       line-height: 1.75;
-    }
-
-    .cta-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 28px;
+      text-align: left;
     }
 
     .btn {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 13px 22px;
-      font-size: 14px;
+      width: 100%;
+      padding: 14px 22px;
+      font-size: 15px;
       font-weight: 600;
       border-radius: var(--radius);
-      border: 1px solid transparent;
+      border: 1px solid var(--accent-bright);
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      transition: background 0.2s;
       font-family: inherit;
-      white-space: nowrap;
-    }
-
-    .btn-primary {
       color: #fff;
       background: var(--accent);
-      border-color: var(--accent-bright);
+      margin-bottom: 16px;
     }
-    .btn-primary:hover { background: var(--accent-bright); }
-
-    .btn-outline {
-      color: var(--text);
-      background: transparent;
-      border-color: var(--border-strong);
-    }
-    .btn-outline:hover {
-      background: var(--surface-hover);
-      border-color: rgba(255, 255, 255, 0.22);
-    }
+    .btn:hover { background: var(--accent-bright); }
 
     .btn svg {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       fill: currentColor;
       flex-shrink: 0;
     }
 
     .meta-line {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
     }
     .meta-line span + span::before {
       content: "·";
@@ -179,87 +152,33 @@
       opacity: 0.5;
     }
 
-    .copy-status {
-      font-size: 13px;
-      color: var(--gold);
-      min-height: 20px;
-      margin-top: 4px;
-    }
-
-    .brand-panel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 32px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
-    }
-    .brand-panel img {
-      width: 120px;
-      height: 120px;
-      border-radius: 24px;
-      margin-bottom: 20px;
-      border: 1px solid var(--border-strong);
-    }
-    .brand-panel p {
-      font-size: 13px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.7;
-      letter-spacing: 0.02em;
-    }
-
-    @media (max-width: 860px) {
-      .hero { grid-template-columns: 1fr; }
-      h1 { font-size: 28px; }
-      .page { padding: 40px 20px 56px; }
+    @media (max-width: 480px) {
+      .card { padding: 32px 24px 28px; }
+      h1 { font-size: 26px; }
+      .logo { width: 68px; height: 68px; }
     }
   </style>
 </head>
 <body>
   <div class="top-bar"></div>
-  <div class="page">
-    <section class="hero">
-      <div>
-        <p class="eyebrow">Official Release</p>
-        <div class="brand-row">
-          <img class="logo" src="../logo.png" alt="" width="52" height="52">
-          <div>
-            <h1>StarsailX</h1>
-            <div class="version" id="version-tag">Version 2.2.1</div>
-          </div>
-        </div>
-        <p class="lead">
-          Starsail 网页版多开客户端。多账号独立会话、消息通知与 Cookie 持久化，轻量稳定，面向日常协作场景。
-        </p>
-        <div class="cta-row">
-          <a class="btn btn-primary" id="download-btn" href="#" rel="noopener">
-            <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
-            下载 Windows 安装包
-          </a>
-          <button class="btn btn-outline" id="copy-btn" type="button">
-            <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-            复制下载链接
-          </button>
-          <a class="btn btn-outline" id="releases-link" href="#" target="_blank" rel="noopener">历史版本</a>
-        </div>
-        <p class="meta-line">
-          <span id="file-info">StarsailX_Setup_2.2.1.exe</span>
-          <span>约 157 MB</span>
-          <span>Windows x64</span>
-        </p>
-        <p class="copy-status" id="copy-status" aria-live="polite"></p>
-      </div>
-      <div class="brand-panel">
-        <img src="../logo.png" alt="StarsailX">
-        <p>Starsail 网页版多开<br>Unicode 表情面板 · 自动登录 · 消息通知</p>
-      </div>
-    </section>
-
-  </div>
+  <main class="card">
+    <p class="eyebrow">Official Release</p>
+    <img class="logo" src="../logo.png" alt="StarsailX" width="80" height="80">
+    <h1>StarsailX</h1>
+    <div class="version" id="version-tag">Version 2.2.1</div>
+    <p class="lead">
+      Starsail 网页版多开客户端。多账号独立会话、消息通知与 Cookie 持久化，轻量稳定，面向日常协作场景。
+    </p>
+    <a class="btn" id="download-btn" href="#" rel="noopener">
+      <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
+      下载 Windows 安装包
+    </a>
+    <p class="meta-line">
+      <span id="file-info">StarsailX_Setup_2.2.1.exe</span>
+      <span>约 157 MB</span>
+      <span>Windows x64</span>
+    </p>
+  </main>
 
   <script>
     (function () {
@@ -277,36 +196,7 @@
       var downloadUrl = "https://github.com/" + GITHUB_REPO + "/releases/latest/download/" + SETUP_NAME;
 
       document.getElementById("download-btn").href = downloadUrl;
-      document.getElementById("releases-link").href = "https://github.com/" + GITHUB_REPO + "/releases";
       document.getElementById("version-tag").textContent = "Version " + VERSION;
-
-      function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-          return navigator.clipboard.writeText(text);
-        }
-        return new Promise(function (resolve, reject) {
-          var ta = document.createElement("textarea");
-          ta.value = text;
-          ta.setAttribute("readonly", "");
-          ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
-          document.body.appendChild(ta);
-          ta.select();
-          ta.setSelectionRange(0, text.length);
-          try {
-            document.execCommand("copy") ? resolve() : reject();
-          } catch (e) { reject(e); }
-          document.body.removeChild(ta);
-        });
-      }
-
-      document.getElementById("copy-btn").addEventListener("click", function () {
-        var status = document.getElementById("copy-status");
-        copyText(downloadUrl).then(function () {
-          status.textContent = "下载链接已复制";
-        }).catch(function () {
-          status.textContent = "请手动复制：" + downloadUrl;
-        });
-      });
     })();
   </script>
 </body>
