@@ -519,6 +519,15 @@ def create_webview2_widget(
 
         def on_context_menu_requested(sender, args):
             try:
+                page_url = ""
+                try:
+                    if sender.Source is not None:
+                        page_url = str(sender.Source).lower()
+                except Exception:
+                    pass
+                if "starsail.vip" in page_url:
+                    return
+
                 target = args.ContextMenuTarget
                 kind = getattr(target, "Kind", None)
                 kind_val = int(kind) if kind is not None else -1

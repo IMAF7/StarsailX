@@ -1,6 +1,6 @@
 ; Inno Setup — StarsailX（卡片式安装选项）
 #define MyAppName "StarsailX"
-#define MyAppVersion "2.2.0"
+#define MyAppVersion "2.2.2"
 #define MyAppPublisher "StarsailX"
 #define MyAppExeName "StarsailX.exe"
 

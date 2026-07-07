@@ -167,16 +167,121 @@ html:not([data-uikit-theme="dark"]) {
     max-width: 100% !important;
     min-width: 0 !important;
     overflow-x: hidden !important;
+    overflow-y: auto !important;
     overflow-wrap: anywhere !important;
     word-break: break-all !important;
     white-space: pre-wrap !important;
 }
-.uikit-message-input,
+.uikit-message-input {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+}
 .uikit-message-input__wrapper,
 .uikit-input-wrapper {
     min-width: 0 !important;
     max-width: 100% !important;
+    overflow: visible !important;
+}
+/* 引用条在输入框上方（position:absolute; bottom:100%），父级不能 overflow:hidden */
+.uikit-quoted__message__preview {
+    z-index: 40 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(100% - 2px) !important;
+    padding: 0 !important;
+    gap: 10px !important;
+    align-items: center !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    animation: starsail-quote-in 0.18s ease-out !important;
+}
+@keyframes starsail-quote-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.uikit-quoted__message__preview__content {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 9px 12px 9px 11px !important;
+    border-radius: 14px 14px 6px 6px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-bottom: none !important;
+    border-left: 3px solid #147aff !important;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    box-shadow: 0 -1px 6px rgba(15, 23, 42, 0.05) !important;
+}
+html[data-uikit-theme=dark] .uikit-quoted__message__preview__content {
+    border-color: #3a3c42 !important;
+    border-left-color: #4086ff !important;
+    background: linear-gradient(180deg, #2a2b30 0%, #25262a 100%) !important;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.22) !important;
+}
+.uikit-quoted__message__preview__content--header {
+    margin-bottom: 2px !important;
+}
+.uikit-quoted__message__preview__content--title {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #147aff !important;
+    line-height: 1.35 !important;
+}
+html[data-uikit-theme=dark] .uikit-quoted__message__preview__content--title {
+    color: #6ba3ff !important;
+}
+.uikit-quoted__message__preview__content--text {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    color: #64748b !important;
+    -webkit-line-clamp: 2 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
     overflow: hidden !important;
+}
+html[data-uikit-theme=dark] .uikit-quoted__message__preview__content--text {
+    color: #9aa3b2 !important;
+}
+.uikit-quoted__message__preview__close {
+    pointer-events: auto !important;
+    z-index: 41 !important;
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(100, 116, 139, 0.12) !important;
+    color: #94a3b8 !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+    transition: background 0.15s, color 0.15s !important;
+}
+.uikit-quoted__message__preview__close:hover {
+    background: rgba(100, 116, 139, 0.2) !important;
+    color: #475569 !important;
+}
+html[data-uikit-theme=dark] .uikit-quoted__message__preview__close {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #9aa3b2 !important;
+}
+html[data-uikit-theme=dark] .uikit-quoted__message__preview__close:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: #e8eaed !important;
+}
+/* 有引用时，输入框上圆角收窄，视觉上连成一体 */
+.uikit-message-input:has(.uikit-quoted__message__preview) {
+    padding-top: 6px !important;
+}
+.uikit-message-input:has(.uikit-quoted__message__preview) .uikit-input-wrapper {
+    border-top-left-radius: 6px !important;
+    border-top-right-radius: 6px !important;
 }
 
 /* 劫持原 TUI 表情按钮，仅隐藏其弹出列表，Unicode 面板挂在原按钮上 */
@@ -470,8 +575,8 @@ STARSAIL_SHELL_CSS_JS = (
     "s.id='starsail-shell-style';"
     "document.documentElement.appendChild(s);"
     "}"
-    "if(s.getAttribute('data-starsail-css-ver')!=='empty-quote-v3'){"
-    "s.setAttribute('data-starsail-css-ver','empty-quote-v3');"
+    "if(s.getAttribute('data-starsail-css-ver')!=='empty-quote-v5'){"
+    "s.setAttribute('data-starsail-css-ver','empty-quote-v5');"
     "}"
     "s.textContent=CSS;"
     "}"
@@ -1114,6 +1219,7 @@ STARSAIL_EMOJI_JS = r"""
 
         let panelAnchor = null;
         let activeInputBox = null;
+        let savedEditorRange = null;
 
         const hideNativeEmojiLists = () => {
             document.querySelectorAll('.uikit-emoji-picker__list').forEach((el) => {
@@ -1130,11 +1236,59 @@ STARSAIL_EMOJI_JS = r"""
                 || box.querySelector('[contenteditable="true"]');
         };
 
+        const isSelectionInEditor = (editor) => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || !editor) return false;
+            const node = sel.anchorNode;
+            return !!(node && editor.contains(node));
+        };
+
+        const saveEditorSelection = (editor) => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || !editor) return;
+            const range = sel.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) return;
+            savedEditorRange = range.cloneRange();
+        };
+
+        const placeCursorAtEnd = (editor) => {
+            if (!editor) return;
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            const sel = window.getSelection();
+            if (!sel) return;
+            sel.removeAllRanges();
+            sel.addRange(range);
+            savedEditorRange = range.cloneRange();
+        };
+
+        const restoreEditorSelection = (editor) => {
+            if (!editor) return;
+            editor.focus();
+            const sel = window.getSelection();
+            if (!sel) return;
+            if (savedEditorRange) {
+                try {
+                    const start = savedEditorRange.startContainer;
+                    const inEditor = editor.contains(start)
+                        || (start && start.parentNode && editor.contains(start.parentNode));
+                    if (inEditor) {
+                        sel.removeAllRanges();
+                        sel.addRange(savedEditorRange);
+                        return;
+                    }
+                } catch (e) {}
+            }
+            placeCursorAtEnd(editor);
+        };
+
         const insertUnicodeEmoji = (editor, emoji) => {
             if (!editor || !emoji) return;
-            editor.focus();
+            restoreEditorSelection(editor);
             try {
                 if (document.execCommand('insertText', false, emoji)) {
+                    saveEditorSelection(editor);
                     editor.dispatchEvent(new InputEvent('input', {
                         bubbles: true,
                         cancelable: true,
@@ -1155,6 +1309,10 @@ STARSAIL_EMOJI_JS = r"""
                     range.collapse(true);
                     sel.removeAllRanges();
                     sel.addRange(range);
+                    savedEditorRange = range.cloneRange();
+                } else {
+                    editor.appendChild(document.createTextNode(emoji));
+                    placeCursorAtEnd(editor);
                 }
                 editor.dispatchEvent(new InputEvent('input', {
                     bubbles: true,
@@ -1205,6 +1363,9 @@ STARSAIL_EMOJI_JS = r"""
                 item.className = 'starsail-uni-emoji__item';
                 item.setAttribute('role', 'option');
                 item.textContent = emoji;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                });
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1221,6 +1382,8 @@ STARSAIL_EMOJI_JS = r"""
         const togglePanel = (anchor, box) => {
             const panel = ensurePanel();
             activeInputBox = box;
+            const editor = findEditor(box);
+            if (editor) saveEditorSelection(editor);
             const isOpen = panel.classList.contains('is-open');
             if (isOpen && panelAnchor === anchor) {
                 closePanel();
@@ -1242,6 +1405,22 @@ STARSAIL_EMOJI_JS = r"""
 
         if (!window.__starsailEmojiClickDelegate) {
             window.__starsailEmojiClickDelegate = true;
+            document.addEventListener('selectionchange', () => {
+                const box = activeInputBox || document.querySelector('.uikit-message-input');
+                const editor = findEditor(box);
+                if (editor && isSelectionInEditor(editor)) {
+                    saveEditorSelection(editor);
+                }
+            });
+            document.addEventListener('input', (e) => {
+                if (!(e.target instanceof Element)) return;
+                const box = e.target.closest('.uikit-message-input');
+                if (!box) return;
+                const editor = findEditor(box);
+                if (editor && editor.contains(e.target)) {
+                    saveEditorSelection(editor);
+                }
+            }, true);
             document.addEventListener('click', (e) => {
                 const target = e.target;
                 if (!(target instanceof Element)) return;
@@ -1264,7 +1443,11 @@ STARSAIL_EMOJI_JS = r"""
                 }
             }, true);
             document.addEventListener('pointerdown', (e) => {
-                if (e.target instanceof Element && e.target.closest('.uikit-emoji-picker__icon')) {
+                if (!(e.target instanceof Element)) return;
+                if (e.target.closest('.uikit-emoji-picker__icon')) {
+                    const box = document.querySelector('.uikit-message-input');
+                    const editor = findEditor(box);
+                    if (editor) saveEditorSelection(editor);
                     e.stopPropagation();
                 }
             }, true);
@@ -1580,13 +1763,42 @@ STARSAIL_INTERACTION_JS = r"""
             })();
         };
 
+        const isImagePreviewOpen = () => {
+            const pv = document.querySelector('.uikit-image-preview');
+            if (!pv) return false;
+            const st = getComputedStyle(pv);
+            const r = pv.getBoundingClientRect();
+            return r.width > 8 && r.height > 8
+                && st.display !== 'none'
+                && st.visibility !== 'hidden'
+                && st.opacity !== '0';
+        };
+
+        const findPreviewImage = (target) => {
+            if (!target || typeof target.closest !== 'function') return null;
+            const pv = target.closest('.uikit-image-preview');
+            if (!pv || !isImagePreviewOpen()) return null;
+            return pv.querySelector('.uikit-image-preview__img')
+                || pv.querySelector('img')
+                || findImgFromTarget(target);
+        };
+
         window.__starsailCopyImageFromPoint = (x, y) => {
+            if (!isImagePreviewOpen()) return false;
             const el = document.elementFromPoint(x, y);
-            const img = findImgFromTarget(el);
-            if (img && isChatImage(img)) {
-                copyImage(img);
-                return true;
-            }
+            const img = findPreviewImage(el);
+            if (!img) return false;
+            copyImage(img);
+            return true;
+        };
+
+        const onImageContextMenu = (e) => {
+            const img = findPreviewImage(e.target);
+            if (!img) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            copyImage(img);
             return false;
         };
 
@@ -1609,16 +1821,6 @@ STARSAIL_INTERACTION_JS = r"""
                     img.addEventListener('load', () => onImageLoadCache(img), { once: true });
                 }
             });
-        };
-
-        const onImageContextMenu = (e) => {
-            const img = findImgFromTarget(e.target);
-            if (!img || !isChatImage(img)) return;
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            copyImage(img);
-            return false;
         };
 
         const bootImageCopy = () => {
