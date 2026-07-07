@@ -31,7 +31,11 @@
       background: var(--bg-deep);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      -webkit-user-select: none;
+      user-select: none;
     }
+
+    .btn, .copy-status { -webkit-user-select: text; user-select: text; }
 
     body::before {
       content: "";
@@ -208,29 +212,6 @@
       letter-spacing: 0.02em;
     }
 
-    .footer {
-      padding-top: 32px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .footer-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .footer a {
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .footer a:hover { color: var(--text); }
-
     @media (max-width: 860px) {
       .hero { grid-template-columns: 1fr; }
       h1 { font-size: 28px; }
@@ -278,19 +259,19 @@
       </div>
     </section>
 
-    <footer class="footer">
-      <span>Copyright &copy; 2026 IMAF7</span>
-      <nav class="footer-links">
-        <a href="https://github.com/IMAF7/StarsailX" target="_blank" rel="noopener">GitHub 仓库</a>
-        <a href="../LICENSE" target="_blank" rel="noopener">MIT License</a>
-        <a href="https://github.com/IMAF7/StarsailX" target="_blank" rel="noopener">项目主页</a>
-      </nav>
-    </footer>
   </div>
 
   <script>
     (function () {
-      var GITHUB_REPO = "IMAF7/StarsailX";
+      document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+      document.addEventListener("keydown", function (e) {
+        var k = e.keyCode || e.which;
+        if (k === 123) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (k === 73 || k === 74 || k === 67)) { e.preventDefault(); return false; }
+        if (e.ctrlKey && k === 85) { e.preventDefault(); return false; }
+      });
+
+      var GITHUB_REPO = atob("SU1BRjcvU3RhcnNhaWxY");
       var VERSION = "2.2.1";
       var SETUP_NAME = "StarsailX_Setup_" + VERSION + ".exe";
       var downloadUrl = "https://github.com/" + GITHUB_REPO + "/releases/latest/download/" + SETUP_NAME;
