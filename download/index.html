@@ -3,61 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StarsailX — 下载</title>
-  <meta name="description" content="StarsailX Starsail 网页版多开客户端官方下载">
+  <title>StarsailX · 下载</title>
+  <meta name="description" content="StarsailX 网页版多开客户端官方下载">
+  <link rel="icon" href="../logo.ico" type="image/x-icon">
   <link rel="icon" href="../logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="../logo.png">
   <style>
-    :root {
-      --bg-deep: #141a24;
-      --bg-mid: #1a2230;
-      --surface: rgba(255, 255, 255, 0.045);
-      --border: rgba(255, 255, 255, 0.1);
-      --border-strong: rgba(255, 255, 255, 0.16);
-      --text: #eef1f6;
-      --muted: #8b95a8;
-      --accent: #4a7fd4;
-      --accent-bright: #6a9ae8;
-      --gold: #c9b07a;
-      --radius: 6px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0b0f17;
+      --bg-secondary: #111927;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --text-primary: #eef2f8;
+      --text-secondary: #8892a8;
+      --text-muted: #5a6478;
+      --accent: #4f8cf7;
+      --accent-hover: #6fa3ff;
+      --accent-glow: rgba(79, 140, 247, 0.25);
+      --gold: #c9b07a;
+      --radius: 12px;
+      --transition: 0.2s ease;
+    }
 
     body {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: var(--text);
-      background: var(--bg-deep);
+      font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       line-height: 1.6;
+      padding: 24px;
       -webkit-font-smoothing: antialiased;
       -webkit-user-select: none;
       user-select: none;
-      padding: 32px 20px;
     }
 
     body::before {
-      content: "";
+      content: '';
       position: fixed;
       inset: 0;
-      background:
-        radial-gradient(ellipse 70% 50% at 50% -10%, rgba(74, 127, 212, 0.12), transparent),
-        linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 55%);
-      pointer-events: none;
       z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% -10%, rgba(79, 140, 247, 0.08), transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 90%, rgba(201, 176, 122, 0.04), transparent 60%),
+        linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+      pointer-events: none;
     }
 
-    .top-bar {
+    .glow-bar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      z-index: 1;
-      height: 2px;
+      height: 1px;
+      z-index: 10;
       background: linear-gradient(90deg, transparent 5%, var(--gold) 50%, transparent 95%);
-      opacity: 0.7;
+      opacity: 0.6;
+      box-shadow: 0 0 20px var(--gold);
     }
 
     .card {
@@ -65,171 +76,388 @@
       z-index: 1;
       width: 100%;
       max-width: 440px;
-      padding: 40px 36px 36px;
-      border: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius);
-      background: var(--surface);
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
       text-align: center;
+      transition: border-color var(--transition);
     }
 
-    .logo {
+    .card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .logo-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 80px;
       height: 80px;
       border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border-strong);
       margin-bottom: 20px;
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+
+    .logo-wrapper:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    .logo-wrapper img {
+      width: 80px;
+      height: 80px;
+      display: block;
+      object-fit: cover;
     }
 
     .eyebrow {
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
 
     h1 {
       font-size: 32px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: -0.02em;
-      line-height: 1.15;
-      margin-bottom: 4px;
+      line-height: 1.1;
+      margin-bottom: 2px;
+      color: #fff;
     }
 
-    .version {
+    .version-badge {
+      display: inline-block;
       font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 20px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
     }
 
     .lead {
       font-size: 15px;
-      color: var(--muted);
-      line-height: 1.75;
+      color: var(--text-secondary);
+      line-height: 1.8;
       margin-bottom: 28px;
       text-align: left;
+      padding: 0 4px;
     }
 
-    .btn {
+    .lead strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .btn-download {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       width: 100%;
-      padding: 14px 22px;
-      font-size: 15px;
+      padding: 16px 24px;
+      font-size: 16px;
       font-weight: 600;
-      border-radius: var(--radius);
-      border: 1px solid var(--accent-bright);
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
       font-family: inherit;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
       color: #fff;
       background: var(--accent);
-      margin-bottom: 16px;
+      transition: all var(--transition);
+      overflow: hidden;
+      margin-bottom: 12px;
     }
-    .btn:hover { background: var(--accent-bright); }
-    .btn.is-loading { opacity: 0.75; pointer-events: none; }
 
-    .btn svg {
-      width: 18px;
-      height: 18px;
+    .btn-download::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .btn-download:hover::before {
+      opacity: 1;
+    }
+
+    .btn-download:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px var(--accent-glow);
+    }
+
+    .btn-download:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-download.is-loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .btn-download.is-complete {
+      background: #27ae60;
+    }
+
+    .btn-download.is-complete::before {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      opacity: 1;
+    }
+
+    .btn-download.is-error {
+      background: #e74c3c;
+    }
+
+    .btn-download.is-error::before {
+      background: linear-gradient(135deg, #e74c3c, #f28b82);
+      opacity: 1;
+    }
+
+    .btn-download svg {
+      position: relative;
+      z-index: 1;
+      width: 20px;
+      height: 20px;
       fill: currentColor;
       flex-shrink: 0;
     }
 
-    .meta-line {
-      font-size: 12px;
-      color: var(--muted);
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
-    }
-    .meta-line span + span::before {
-      content: "·";
-      margin: 0 8px;
-      opacity: 0.5;
+    .btn-download .btn-text {
+      position: relative;
+      z-index: 1;
     }
 
-    .download-hint {
-      font-size: 12px;
-      color: var(--muted);
-      min-height: 18px;
-      margin-top: -8px;
+    .hint {
+      font-size: 13px;
+      color: var(--text-secondary);
+      min-height: 22px;
       margin-bottom: 4px;
+      transition: color var(--transition);
+    }
+
+    .hint.is-success {
+      color: #6fcf97;
+    }
+
+    .hint.is-error {
+      color: #f28b82;
+    }
+
+    .hint.is-info {
+      color: var(--accent);
+    }
+
+    .meta {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta .dot {
+      color: var(--border-strong);
     }
 
     @media (max-width: 480px) {
-      .card { padding: 32px 24px 28px; }
-      h1 { font-size: 26px; }
-      .logo { width: 68px; height: 68px; }
+      .card {
+        padding: 32px 20px 28px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      .logo-wrapper {
+        width: 68px;
+        height: 68px;
+      }
+      .logo-wrapper img {
+        width: 68px;
+        height: 68px;
+      }
+      .btn-download {
+        font-size: 14px;
+        padding: 14px 20px;
+      }
+      .meta {
+        flex-wrap: wrap;
+        gap: 6px 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="top-bar"></div>
-  <main class="card">
+
+  <div class="glow-bar" aria-hidden="true"></div>
+
+  <main class="card" role="main">
     <p class="eyebrow">Official Release</p>
-    <img class="logo" src="../logo.png" alt="StarsailX" width="80" height="80">
+
+    <div class="logo-wrapper">
+      <img src="../logo.png" alt="StarsailX" width="80" height="80">
+    </div>
+
     <h1>StarsailX</h1>
-    <div class="version" id="version-tag">Version 2.2.1</div>
+    <div class="version-badge" id="versionTag">Version 2.2.1</div>
+
     <p class="lead">
-      Starsail 网页版多开客户端。多账号独立会话、消息通知与 Cookie 持久化，轻量稳定，面向日常协作场景。
+      <strong>多账号独立会话</strong> · 消息通知与 Cookie 持久化<br>
+      轻量稳定，面向日常协作场景。
     </p>
-    <button class="btn" id="download-btn" type="button">
-      <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/></svg>
-      <span id="btn-text">下载 Windows 安装包</span>
+
+    <button class="btn-download" id="downloadBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/>
+      </svg>
+      <span class="btn-text" id="btnText">下载 Windows 安装包</span>
     </button>
-    <p class="download-hint" id="download-hint" aria-live="polite"></p>
-    <p class="meta-line">
-      <span id="file-info">StarsailX_Setup_2.2.1.exe</span>
+
+    <p class="hint" id="hint" aria-live="polite"></p>
+
+    <div class="meta">
+      <span id="fileName">StarsailX_Setup_2.2.1.exe</span>
+      <span class="dot">·</span>
       <span>约 157 MB</span>
+      <span class="dot">·</span>
       <span>Windows x64</span>
-    </p>
+    </div>
   </main>
 
   <script>
-    (function () {
-      document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-      document.addEventListener("keydown", function (e) {
-        var k = e.keyCode || e.which;
-        if (k === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (k === 73 || k === 74 || k === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && k === 85) { e.preventDefault(); return false; }
-      });
+    (function() {
+      'use strict';
 
-      var VERSION = "2.2.1";
-      var SETUP_NAME = "StarsailX_Setup_" + VERSION + ".exe";
-      var downloadUrl = "https://github.com/IMAF7/StarsailX/releases/download/v" + VERSION + "/" + SETUP_NAME;
+      var VERSION = '2.2.1';
+      var FILE_NAME = 'StarsailX_Setup_' + VERSION + '.exe';
+      var DOWNLOAD_URL = 'https://github.com/IMAF7/StarsailX/releases/download/v' + VERSION + '/' + FILE_NAME;
 
-      var dlFrame = document.createElement("iframe");
-      dlFrame.style.cssText = "position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none";
-      dlFrame.setAttribute("aria-hidden", "true");
-      dlFrame.title = "";
+      var btn = document.getElementById('downloadBtn');
+      var btnText = document.getElementById('btnText');
+      var hint = document.getElementById('hint');
+      var versionTag = document.getElementById('versionTag');
+
+      versionTag.textContent = 'Version ' + VERSION;
+      document.getElementById('fileName').textContent = FILE_NAME;
+
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, { passive: false });
+
+      document.addEventListener('keydown', function(e) {
+        var key = e.key;
+        var ctrl = e.ctrlKey || e.metaKey;
+        var shift = e.shiftKey;
+
+        if (key === 'F12') { e.preventDefault(); return false; }
+        if (ctrl && shift && (key === 'I' || key === 'J' || key === 'C')) { e.preventDefault(); return false; }
+        if (ctrl && (key === 'u' || key === 'U' || key === 's' || key === 'S')) { e.preventDefault(); return false; }
+        if (key === 'F1') { e.preventDefault(); return false; }
+
+        return true;
+      }, { passive: false });
+
+      if (window.top !== window.self) {
+        window.top.location = window.self.location;
+      }
+
+      document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+      }, { passive: false });
+
+      var dlFrame = document.createElement('iframe');
+      dlFrame.style.cssText = 'position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none';
+      dlFrame.setAttribute('aria-hidden', 'true');
+      dlFrame.title = '';
       document.body.appendChild(dlFrame);
 
-      var btn = document.getElementById("download-btn");
-      var btnText = document.getElementById("btn-text");
-      var hint = document.getElementById("download-hint");
+      var isDownloading = false;
       var resetTimer = null;
 
-      btn.addEventListener("click", function () {
-        if (btn.classList.contains("is-loading")) return;
-        btn.classList.add("is-loading");
-        btnText.textContent = "正在下载…";
-        hint.textContent = "已开始下载，请查看浏览器下载栏";
-        dlFrame.src = downloadUrl;
-        clearTimeout(resetTimer);
-        resetTimer = setTimeout(function () {
-          btn.classList.remove("is-loading");
-          btnText.textContent = "下载 Windows 安装包";
-        }, 4000);
+      function resetButton() {
+        btn.classList.remove('is-loading', 'is-complete', 'is-error');
+        btnText.textContent = '下载 Windows 安装包';
+        isDownloading = false;
+        setTimeout(function() {
+          if (hint.className.indexOf('is-error') === -1) {
+            hint.textContent = '';
+            hint.className = 'hint';
+          }
+        }, 2000);
+      }
+
+      function handleDownload() {
+        if (isDownloading) return;
+        isDownloading = true;
+
+        btn.classList.remove('is-complete', 'is-error');
+        btn.classList.add('is-loading');
+        btnText.textContent = '正在启动下载...';
+        hint.textContent = '正在连接下载服务器';
+        hint.className = 'hint is-info';
+
+        if (resetTimer) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+
+        try {
+          dlFrame.src = DOWNLOAD_URL;
+
+          btn.classList.remove('is-loading');
+          btn.classList.add('is-complete');
+          btnText.textContent = '下载已开始';
+
+          hint.textContent = '文件 ' + FILE_NAME + ' 正在下载中，请查看浏览器下载栏';
+          hint.className = 'hint is-success';
+
+          resetTimer = setTimeout(function() {
+            resetButton();
+          }, 4000);
+
+        } catch (err) {
+          hint.textContent = '下载启动失败，请稍后重试';
+          hint.className = 'hint is-error';
+          btn.classList.remove('is-loading');
+          btn.classList.add('is-error');
+          btnText.textContent = '点击重试';
+          isDownloading = false;
+        }
+      }
+
+      btn.addEventListener('click', handleDownload);
+
+      btn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleDownload();
+        }
       });
 
-      document.getElementById("version-tag").textContent = "Version " + VERSION;
     })();
   </script>
+
 </body>
 </html>
