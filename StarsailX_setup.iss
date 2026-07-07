@@ -5,7 +5,7 @@
 #define MyAppExeName "StarsailX.exe"
 
 [Setup]
-AppId={{A8F3C2E1-9B4D-4F6A-8E2C-1D5B7A9E3F04}
+AppId={{C4D8E2F1-5A7B-4C9E-8D3F-1B6A9E2C4F07}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
