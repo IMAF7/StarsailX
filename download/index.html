@@ -190,10 +190,9 @@
         if (e.ctrlKey && k === 85) { e.preventDefault(); return false; }
       });
 
-      var GITHUB_REPO = atob("SU1BRjcvU3RhcnNhaWxY");
       var VERSION = "2.2.1";
       var SETUP_NAME = "StarsailX_Setup_" + VERSION + ".exe";
-      var downloadUrl = "https://github.com/" + GITHUB_REPO + "/releases/latest/download/" + SETUP_NAME;
+      var downloadUrl = "https://0im.cn/" + SETUP_NAME;
 
       document.getElementById("download-btn").href = downloadUrl;
       document.getElementById("version-tag").textContent = "Version " + VERSION;
