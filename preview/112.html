@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StarsailX · 下载</title>
+  <meta name="description" content="StarsailX 网页版多开客户端官方下载">
+  <link rel="icon" href="../logo.ico" type="image/x-icon">
+  <link rel="icon" href="../logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="../logo.png">
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const VERSION = '2.2.2';
+      const FILE_NAME = `StarsailX_Setup_${VERSION}.exe`;
+      const DOWNLOAD_URL = `https://github.com/IMAF7/StarsailX/releases/download/v${VERSION}/${FILE_NAME}`;
+      const FILE_SIZE = '约 157 MB';
+
+      const htmlContent = `
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          :root {
+            --bg-primary: #0b0f17;
+            --bg-secondary: #111927;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-strong: rgba(255, 255, 255, 0.12);
+            --text-primary: #eef2f8;
+            --text-secondary: #8892a8;
+            --text-muted: #5a6478;
+            --accent: #4f8cf7;
+            --accent-hover: #6fa3ff;
+            --accent-glow: rgba(79, 140, 247, 0.25);
+            --gold: #c9b07a;
+            --radius: 12px;
+            --transition: 0.2s ease;
+          }
+
+          body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+
+          body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+              radial-gradient(ellipse 60% 40% at 50% -10%, rgba(79, 140, 247, 0.08), transparent 70%),
+              radial-gradient(ellipse 40% 30% at 80% 90%, rgba(201, 176, 122, 0.04), transparent 60%),
+              linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            pointer-events: none;
+          }
+
+          .glow-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            z-index: 10;
+            background: linear-gradient(90deg, transparent 5%, var(--gold) 50%, transparent 95%);
+            opacity: 0.6;
+            box-shadow: 0 0 20px var(--gold);
+          }
+
+          .card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px 40px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            transition: border-color var(--transition);
+          }
+
+          .card:hover {
+            border-color: var(--border-strong);
+          }
+
+          .logo-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-strong);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all var(--transition);
+          }
+
+          .logo-wrapper:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+          }
+
+          .logo-wrapper img {
+            width: 80px;
+            height: 80px;
+            display: block;
+            object-fit: cover;
+          }
+
+          .eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 6px;
+          }
+
+          h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: 2px;
+            color: #fff;
+          }
+
+          .version-badge {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 24px;
+          }
+
+          .lead {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 28px;
+            text-align: left;
+            padding: 0 4px;
+          }
+
+          .lead strong {
+            color: var(--text-primary);
+            font-weight: 600;
+          }
+
+          .btn-download {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            color: #fff;
+            background: var(--accent);
+            transition: all var(--transition);
+            overflow: hidden;
+            margin-bottom: 12px;
+          }
+
+          .btn-download::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            opacity: 0;
+            transition: opacity var(--transition);
+          }
+
+          .btn-download:hover::before {
+            opacity: 1;
+          }
+
+          .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+          }
+
+          .btn-download:active {
+            transform: translateY(0) scale(0.98);
+          }
+
+          .btn-download.is-loading {
+            opacity: 0.7;
+            pointer-events: none;
+          }
+
+          .btn-download.is-complete {
+            background: #27ae60;
+          }
+
+          .btn-download.is-complete::before {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            opacity: 1;
+          }
+
+          .btn-download.is-error {
+            background: #e74c3c;
+          }
+
+          .btn-download.is-error::before {
+            background: linear-gradient(135deg, #e74c3c, #f28b82);
+            opacity: 1;
+          }
+
+          .btn-download svg {
+            position: relative;
+            z-index: 1;
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            flex-shrink: 0;
+          }
+
+          .btn-download .btn-text {
+            position: relative;
+            z-index: 1;
+          }
+
+          .hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            min-height: 22px;
+            margin-bottom: 4px;
+            transition: color var(--transition);
+          }
+
+          .hint.is-success {
+            color: #6fcf97;
+          }
+
+          .hint.is-error {
+            color: #f28b82;
+          }
+
+          .hint.is-info {
+            color: var(--accent);
+          }
+
+          .meta {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding-top: 16px;
+            border-top: 1px solid var(--border-subtle);
+          }
+
+          .meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+
+          .meta .dot {
+            color: var(--border-strong);
+          }
+
+          @media (max-width: 480px) {
+            .card {
+              padding: 32px 20px 28px;
+            }
+            h1 {
+              font-size: 28px;
+            }
+            .logo-wrapper {
+              width: 68px;
+              height: 68px;
+            }
+            .logo-wrapper img {
+              width: 68px;
+              height: 68px;
+            }
+            .btn-download {
+              font-size: 14px;
+              padding: 14px 20px;
+            }
+            .meta {
+              flex-wrap: wrap;
+              gap: 6px 12px;
+            }
+          }
+        </style>
+
+        <div class="glow-bar" aria-hidden="true"></div>
+
+        <main class="card" role="main">
+          <p class="eyebrow">Official Release</p>
+
+          <div class="logo-wrapper">
+            <img src="../logo.png" alt="StarsailX" width="80" height="80">
+          </div>
+
+          <h1>StarsailX</h1>
+          <div class="version-badge">Version ${VERSION}</div>
+
+          <p class="lead">
+            <strong>多账号独立会话</strong> · 消息通知与 Cookie 持久化<br>
+            轻量稳定，面向日常协作场景。
+          </p>
+
+          <button class="btn-download" id="downloadBtn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4h14v-2H5v2z"/>
+            </svg>
+            <span class="btn-text" id="btnText">下载 Windows 安装包</span>
+          </button>
+
+          <p class="hint" id="hint" aria-live="polite"></p>
+
+          <div class="meta">
+            <span id="fileName">${FILE_NAME}</span>
+            <span class="dot">·</span>
+            <span>${FILE_SIZE}</span>
+            <span class="dot">·</span>
+            <span>Windows x64</span>
+          </div>
+        </main>
+      `;
+
+      document.getElementById('app').innerHTML = htmlContent;
+
+      const btn = document.getElementById('downloadBtn');
+      const btnText = document.getElementById('btnText');
+      const hint = document.getElementById('hint');
+
+      let isDownloading = false;
+      let resetTimer = null;
+
+      function resetButton() {
+        btn.classList.remove('is-loading', 'is-complete', 'is-error');
+        btnText.textContent = '下载 Windows 安装包';
+        isDownloading = false;
+        setTimeout(function() {
+          if (hint.className.indexOf('is-error') === -1) {
+            hint.textContent = '';
+            hint.className = 'hint';
+          }
+        }, 2000);
+      }
+
+      function handleDownload() {
+        if (isDownloading) return;
+        isDownloading = true;
+
+        btn.classList.remove('is-complete', 'is-error');
+        btn.classList.add('is-loading');
+        btnText.textContent = '正在启动下载...';
+        hint.textContent = '正在连接下载服务器';
+        hint.className = 'hint is-info';
+
+        if (resetTimer) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+
+        try {
+          const dlFrame = document.createElement('iframe');
+          dlFrame.style.cssText = 'position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none';
+          dlFrame.setAttribute('aria-hidden', 'true');
+          dlFrame.title = '';
+          document.body.appendChild(dlFrame);
+          dlFrame.src = DOWNLOAD_URL;
+
+          btn.classList.remove('is-loading');
+          btn.classList.add('is-complete');
+          btnText.textContent = '下载已开始';
+
+          hint.textContent = `文件 ${FILE_NAME} 正在下载中，请查看浏览器下载栏`;
+          hint.className = 'hint is-success';
+
+          resetTimer = setTimeout(function() {
+            resetButton();
+          }, 4000);
+
+        } catch (err) {
+          hint.textContent = '下载启动失败，请稍后重试';
+          hint.className = 'hint is-error';
+          btn.classList.remove('is-loading');
+          btn.classList.add('is-error');
+          btnText.textContent = '点击重试';
+          isDownloading = false;
+        }
+      }
+
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, { passive: false });
+
+      document.addEventListener('keydown', function(e) {
+        const key = e.key;
+        const ctrl = e.ctrlKey || e.metaKey;
+        const shift = e.shiftKey;
+
+        if (key === 'F12' || key === 'F11') {
+          e.preventDefault();
+          return false;
+        }
+        
+        if (ctrl && shift && ['I', 'J', 'C', 'K', 'U'].includes(key)) {
+          e.preventDefault();
+          return false;
+        }
+        
+        if (ctrl && ['U', 'S'].includes(key)) {
+          e.preventDefault();
+          return false;
+        }
+        
+        if (key === 'F1') {
+          e.preventDefault();
+          return false;
+        }
+
+        return true;
+      }, { passive: false });
+
+      document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+      }, { passive: false });
+
+      if (window.top !== window.self) {
+        window.top.location = window.self.location;
+      }
+
+      btn.addEventListener('click', handleDownload);
+
+      btn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleDownload();
+        }
+      });
+
+      if (window.location.protocol === 'view-source:') {
+        window.location.href = '/';
+      }
+
+    })();
+  </script>
+</body>
+</html>
